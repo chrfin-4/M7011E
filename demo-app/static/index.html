@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Super demo cool stuff</title>
+    </head>
+    <body>
+        <h1>This is my awesome app</h1>
+        <h2>Latest api request was serverd from <span id="server">NOTHING</span></h2>
+        <button onclick="apiii(); return false;">Click me for API request</button>
+    </body>
+    <script>
+        function apiii() {
+            fetch("/api/gimmesome").then(function(response) {
+                server = document.querySelector("#server");
+                console.log(response)
+                response.text().then(function(data) {
+                    server.innerHTML = data;
+                })
+            });
+        }
+        setTimeout(apiii, 2000);
+    </script>
+</html>
+

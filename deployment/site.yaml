@@ -1,0 +1,49 @@
+ - hosts: loadbalancers
+   become: yes
+   tasks:
+           - name: Install HAProxy
+             apt: name=haproxy
+           - name: Configure HAProxy
+             template: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg
+             notify:
+               - Restart HAProxy
+   handlers:
+     - name: Restart HAProxy
+       service:
+         name: haproxy
+         state: restarted
+
+
+ - hosts: webservers
+   become: yes
+   tasks:
+     - name: Install certificates
+       template: src=exerge.pem dest=/etc/ssl/exerge.pem
+       template: src=exerge.key dest=/etc/ssl/exerge.key
+     - name: Install nginx
+       apt: name=nginx
+     - name: Configure nginx
+       template: src=nginx-site.cfg dest=/etc/nginx/sites-available/default
+       notify:
+         - Restart Nginx
+     - name: Install NodeSource package signing key
+       shell: curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
+     - name: Install NodeSource repository
+       shell: echo "deb https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+     - shell: echo "deb-src https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
+     - name: Install Node.js (urK)
+       apt: name=nodejs update_cache=true
+     - name: Download application
+       git:
+         repo: https://github.com/chrfin-4/M7011E.git
+         dest: /home/ubuntu/exerge
+         force: yes
+     - name: Install server in systemd
+       copy: src=app.service dest=/etc/systemd/system/exerge.service
+     - name: Start server
+       systemd: state=started name=my-app daemon_reload=yes
+   handlers:
+     - name: Restart Nginx
+       service:
+         name: nginx
+         state: restarted
