@@ -1,25 +1,22 @@
  - hosts: loadbalancers
    become: yes
    tasks:
-           - name: Install HAProxy
-             apt: name=haproxy
-           - name: Configure HAProxy
-             template: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg
-             notify:
-               - Restart HAProxy
+     - name: Install certificates
+       template: src=exerge.pem dest=/etc/ssl/exerge.pem
+     - name: Install HAProxy
+       apt: name=haproxy
+     - name: Configure HAProxy
+       template: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg
+       notify:
+         - Restart HAProxy
    handlers:
      - name: Restart HAProxy
        service:
          name: haproxy
          state: restarted
-
-
  - hosts: webservers
    become: yes
    tasks:
-     - name: Install certificates
-       template: src=exerge.pem dest=/etc/ssl/exerge.pem
-       template: src=exerge.key dest=/etc/ssl/exerge.key
      - name: Install nginx
        apt: name=nginx
      - name: Configure nginx
