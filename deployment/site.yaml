@@ -38,7 +38,7 @@
      - name: Install server in systemd
        copy: src=app.service dest=/etc/systemd/system/exerge.service
      - name: Start server
-       systemd: state=started name=my-app daemon_reload=yes
+       systemd: state=started name=exerge daemon_reload=yes
    handlers:
      - name: Restart Nginx
        service:

@@ -7,7 +7,7 @@ StartLimitIntervalSec=0
 Type=simple
 Restart=always
 RestartSec=1
-User=armedguy
+User=ubuntu
 ExecStart=/usr/bin/node /home/ubuntu/exerge/demo-app/server.js
 
 [Install]
