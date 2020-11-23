@@ -1,3 +1,10 @@
+# Certificates
+*.pem
+*.key
+
+# Editor files
+*.swp
+
 # Logs
 logs
 *.log
