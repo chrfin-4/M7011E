@@ -17,7 +17,7 @@ function getWindSpeed() {
 }
 
 function getPowerConsumption() {
-  return sim.currentGridDemand();
+  return sim.currentMarketDemand();
 }
 
 function getPrice() {

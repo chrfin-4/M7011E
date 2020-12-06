@@ -3,6 +3,9 @@ const assert = require('assert');
 // TODO: use Wh or Ws ???
 // Doesn't matter. Rename to something neutral.
 
+// TODO: neat idea: add an efficiency constant (that could be lower than 1)
+// so that some power is lost when charging (and discharging?).
+
 /*
  * Models a battery with a certain charge.
  * Does not take into account that a real battery can only a charge and

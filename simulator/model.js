@@ -22,10 +22,11 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
   let running = false;
   let consumers;
   let manager;
-  let demand;
+  let marketDemand;
   // FIXME: manager should probably have its own power plant?
   // Should also be a parameter.
   let powerPlant = Powerplant(1e9, 30_000);
+  let blackout = false; // At least one home is not getting its demands met.
 
   const timeFactor = speed;
   let simTime = util.toMilliseconds(t0);
@@ -38,14 +39,14 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
       date: new Date(simTime),
       weather: weatherModel.currentWeather(simTime),
       electricityPrice,
-      gridDemand: demand,
+      marketDemand,
     };
   };
 
   const obj = {
     // --- Model stuff. ---
     prosumer(id) { return prosumers[id]; },
-    currentGridDemand() { return demand; },
+    currentMargetDemand() { return marketDemand; },
     currentElectricityPrice() { return electricityPrice; },
     currentWeather() { return weather; },
     // TODO: add more methods for simulating prosumer/manager actions
@@ -62,7 +63,6 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
       running = false;
     },
 
-    // TODO: What is the step size? Should it be variable?
     // Step forward in simulation time.
     advanceSimulationBy(interval=1000, steps=1) {
       assert(!running);
@@ -103,8 +103,8 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
     weather = weatherModel.currentWeather(simTime);
     const state = currentState();
     updatePowerPlant();
-    demand = getTotalNetDemand(state);
-    let supply = -demand;
+    marketDemand = getTotalNetDemand(state);
+    let supply = -marketDemand;
     supply = satisfyDemand(supply);
   }
 

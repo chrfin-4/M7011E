@@ -4,6 +4,7 @@ const assert = util.assert;
 const assertIsNumber = util.assertIsNumber;
 const getArgOrDefault = util.getArgOrDefault;
 const normalDistribution = util.normalDistribution;
+const ConsumptionModel = require('./consumption.js').ConsumptionModel;
 
 exports.ConsumptionModel = ConsumptionModel;
 exports.Prosumer = Prosumer;
@@ -42,18 +43,6 @@ exports.Prosumer = Prosumer;
  * discrete chunks/intervals of time.
  */
 
-// TODO: if a prosumer has lots of available battery charge and wants to satisfy
-// most of its demand from the grid (to save battery for later), but the grid does
-// not deliver the requested amount, is the prosumer in a blackout (even though
-// there's plenty of battery available)?
-// Should it adapt and draw more from the battery than initially dictated by the
-// discharge/buy ratio? Or should it stubbornly stick to its original plan?
-//
-// Similarly, surely failing to sell electricity to the grid should result in more
-// being diverted to the battery?
-//
-// Perhaps a flag could be used to control this?
-
 /*
  * Based on ??? (article)
  * 10-11 kWh/day is a good average consumption.
@@ -72,10 +61,6 @@ exports.Prosumer = Prosumer;
  * A reasonable average for electricity cost is 0.25 kr/kWh.
  */
 
-// TODO: include policies in the prosumer model? (Along with consumption and production.)
-// Maybe not. Policies (functions rather than ratios) are probably overkill.
-// Policies probably belong in the prosumer app, which dynamically sets ratios.
-// However, using functions does make periodic updates easier.
 /*
  * The model is used to compute the production and consumption.
  * 13,500 Wh is the capacity of a Tesla Powerwall.
@@ -94,42 +79,58 @@ exports.Prosumer = Prosumer;
 function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
 
   const rng = normalDistribution();
-  const batteryCap = getArgOrDefault(args, 'batteryCapacity', () => 13500);
-  const batteryCharge = getArgOrDefault(args, 'battery', () => 0);
-  let powerBought = getArgOrDefault(args, 'powerBought', () => 0);
-  let powerSold = getArgOrDefault(args, 'powerSold', () => 0);
+  const batteryCap = getArgOrDefault(args, 'batteryCapacity', () => 13500); // tmp
+  const batteryCharge = getArgOrDefault(args, 'battery', () => 0);          // tmp
+  const battery = Battery(batteryCap, batteryCharge);  // TODO: take as parameter?
+  // TODO: remove?
+  //let powerBought = getArgOrDefault(args, 'powerBought', () => 0);
+  //let powerSold = getArgOrDefault(args, 'powerSold', () => 0);
   let overProdPolicy = getArgOrDefault(args, 'overproductionPolicy', () => () => rng());
   let underProdPolicy = getArgOrDefault(args, 'underproductionPolicy', () => () => rng());
 
-  // Raw production.
-  let currentProduction = 0;
-  // Raw consumption.
-  let currentConsumption = 0;
+  // Raw production. (W)
+  let currentProduction;    // Computed at start of each update.
+  // Raw consumption. (W)
+  let currentConsumption;   // Computed at start of each update.
 
-  // Total surplus or deficit, independent of charge/discharge ratios.
-  let netProduction = undefined; // computed at start of each update.
-  // Actual offering to/demanding from the grid, includes charge/discharge target.
-  let demand = undefined; // computed at start of update
+  // Total surplus or deficit, independent of charge/discharge ratios. (Ws)
+  let netProduction;        // Computed at start of each update.
+  // Actual offering to/demanding from the grid, includes charge/discharge target. (Ws)
+  let netDemand;            // Computed at start of update.
+  // After buying/selling and charging/discharging.
+  let finalBalance;         // Computed when finishing update.
 
   // Control how much we want to attempt to charge/discharge and buy/sell.
-  // FIXME: should not be hardcoded
-  let chargeRatio = 0.5;
-  let dischargeRatio = 0.5;
+  // Set at start of update based on over/under production policies.
+  let chargeRatio;
+  let dischargeRatio;
 
-  let totalBought = 0;  // Since beginning of time.
-  let totalSold = 0;    // Since beginning of time.
-  let banned = {        // bans can be injected between updates.
-    from: undefined,
-    until: undefined,
-  };
+  let totalBought = 0;  // Since beginning of time. (Ws)
+  let totalSold = 0;    // Since beginning of time. (Ws)
+  let banDuration = 0;
+  let banned = false;
   let blackout = false; // compute at end of update based on received vs needed.
-  let currentTime = undefined; // and also last update
-  let updating = false; // set by start update, cleared by finish update
-  const battery = Battery(batteryCap, batteryCharge);  // TODO: take as parameter?
+  let currentTime;      // Set at start of each update.
+  let timeDiff = 0;     // Computed at start of each update.
+  let currentState;     // Set at start of each update.
+  let updating = false; // Set by start update, cleared by finish update.
+
+  let bought = 0;
+  let sold = 0;
 
   const obj = {
 
-    // TODO: allow ratios to be set
+    setChargeRatio(ratio) {
+      assert(ratio >= 0 && ratio <= 1);
+      overProdPolicy = () => ratio;
+      return this;
+    },
+
+    setDischargeRatio(ratio) {
+      assert(ratio >= 0 && ratio <= 1);
+      underProdPolicy = () => ratio;
+      return this;
+    },
 
     // --- These only make sense between updates. ---
 
@@ -138,19 +139,27 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     /* How much power (W) is currently needed. */
     currentPowerConsumption() { return currentConsumption; },
     /* How much excess power (W) is currently being produced - may be negative. */
-    currentNetProduction() { return currentProduction - currentConsumption; },
+    currentNetPowerProduction() { return currentProduction - currentConsumption; },
     /* Currently experiencing a blackout? */
     isBlackedOut() { return blackout; },
     /* Currently banned from selling? */
     isBanned() {
-      return false; // FIXME
+      return banned;
     },
-    /* Ban from selling for some number of milliseconds. */
-    banFor(duration, from=currentTime) {
-    }, // FIXME
-    /* Ban until some date (can be milliseconds or Date). */
-    banUntil(date, from=currentTime) {
-    }, // FIXME
+
+    // TODO: Really acceptable behavior? If a short ban is placed immediately after
+    // an update and it expires before the next update, then the ban has no effect!
+    // Is there even any better alternative?
+    /* Ban from selling for some number of milliseconds.
+     * The ban applies to (at least) the whole interval. So the minimum (actual)
+     * duration cannot be shorter than the update interval.
+     * Any previously pending ban is ignored and replaced.
+     */
+    banFor(duration) {
+      assert(!updating);
+      banDuration = duration;  // update each tick
+      return this;
+    },
 
     batteryCharge() { return battery.currentCharge(); },
     // % charged
@@ -177,7 +186,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
      */
     netDemand() {
       assert(updating);
-      return demand;
+      return netDemand;
     },
 
     /* How much excess electricity (Ws) has been produced - may be negative. */
@@ -186,30 +195,26 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
       return netProduction;
     },
 
-    // TODO: immediately update demand in place?
-    // Or accumulate in a variable and process during finishUpdate???
-    // Probably accumulate! That also allows the total price to be computed
-    // (without having to add that detail here).
-
     /* Send this much electricity (Ws) TO the prosumer. */
     buyFromGrid(Ws) {
       assert(updating);
       assert(Ws >= 0);      // Must always be positive.
-      assert(demand >= 0);  // Can only buy something if deficit.
-      assert(Ws <= demand); // Cannot buy more than requested.
-      demand -= Ws;
+      assert(netDemand >= 0);  // Can only buy something if deficit.
+      assert((bought + Ws) <= netDemand); // Cannot buy more than requested.
       totalBought += Ws;
+      bought += Ws;
     },
 
     /* Receive this much electricity (Ws) FROM the prosumer. */
     sellToGrid(Ws) {
       assert(updating);
       assert(Ws >= 0);      // Must always be positive.
-      assert(demand <= 0);  // Can only sell something if surplus.
-      assert(Ws <= -demand); // Cannot sell more than offered.
+      assert(netDemand <= 0);  // Can only sell something if surplus.
+      assert((sold + Ws) <= -netDemand); // Cannot sell more than offered.
       assert(!this.isBanned()); // Cannot sell if banned.
-      demand += Ws;
+      netDemand += Ws;
       totalSold += Ws;
+      sold += Ws;
     },
 
   /* On start update:
@@ -227,41 +232,125 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
      * Assumes that the previous production/consumption applies since the last update
      * until now.
      */
-    startUpdate(state) {  // FIXME
-      updating = true;
-      const newTime = util.toMilliseconds(state.date);
-      const duration = newTime - currentTime;
-      currentTime = newTime;                          // Update current time.
-      bannedUntil = computeBannedTimer();             // Uses current time.
-      netProduction = computeNetProduction(duration); // Uses current time.
-      demand = computeNetDemand();
-    },
-
-    // Does not need any args. Right?
-    finishUpdate() {  // FIXME
-      currentProduction = computeProduction(state);
-      currentConsumption = computeConsumption(state);
-      updateBattery();
-      updateBlackout();
-      updateBanned();
-      updating = false;
-      demand = 0;
-    },
-
-    // TODO: deprecate?
-    updateState(state) {
-      this.startUpdate(state);
-      this.finishUpdate();
+    startUpdate(state) {  // XXX: deprecated  ... or is it?
+      startUpdate(state);
       return this;
-    }
+    },
+
+    finishUpdate() {  // XXX: deprecated  ... or is it?
+      finishUpdate();
+      return this;
+    },
 
   };
+
+  init(state);
+  return obj;
 
   function init(state) {
     currentProduction = computeProduction(state);
     currentConsumption = computeConsumption(state);
     currentTime = util.toMilliseconds(state.date);
   }
+
+  // Whenever the duration is known, we can choose to use either
+  // the power from the previous update or the current power.
+  // However, demand satisfaction must lag one way or another!
+  // Because otherwise we would look at how much electricity we got, THEN decide how
+  // much we need, and then possibly declare a blackout because we didn't get enough.
+  // One might claim that the needed power should be available on demand when it is
+  // needed, and so we can set power and electricity simultaneously and expect the
+  // new demand to be met. But then we can only check whether it was in fact met
+  // when we get the new update!
+  //
+  // So it's possible to update production and demand simultaneously (at the
+  // end of update), then check old demand vs accumulated supply. But it's also possible
+  // to compute current production at the start of the update, and then compare current
+  // deman vs accumulated supply at the end.
+  //
+  // An advantage of splitting updates into start/finish is that we get the outcome
+  // of an update within a single "turn", rather than having to wait until the next
+  // update to see what happened.
+
+  /* Update time.
+   * Figure out demand based on current state (production,
+   * consumption, banned, ratios, etc).
+   */
+  function startUpdate(state) {
+    updating = true;
+    setClock(state.date); // Update current time and interval since last update.
+    currentState = state;
+    // TODO: (also see finishUpdate)
+    // Set production/consumption here, and use for the past interval?
+    // Or set at end of update, and use for coming interval?
+    currentProduction = computeProduction(state);
+    currentConsumption = computeConsumption(state);
+    updateBanned(); // Currently banned?
+    updateRatios();
+    netProduction = computeNetProduction(timeDiff); // Uses current time.
+    netDemand = computeNetDemand();
+  }
+
+  // XXX: now the ban status is updated BOTH at the start of update AND at the end.
+  // Is that correct? Does it make sense?
+
+  /* Compute new
+   * Blackout status.
+   * Banned status.
+   */
+  function finishUpdate() {
+    finalBalance = netProduction + bought - sold;
+    updateBattery();
+    updateBlackout();
+    // TODO: (also see startUpdate)
+    // Set production/consumption here, and use for the coming interval?
+    // Or set at start of update, and use for past interval?
+    //currentProduction = computeProduction(currentState);
+    //currentConsumption = computeConsumption(currentState);
+    updateBanDuration();
+    updateBanned(); // Currently banned?
+    // Clear.
+    netDemand = 0;
+    netProduction = 0;
+    bought = 0;
+    sold = 0;
+    finalBalance = 0;
+    updating = false;
+    enforceInvariants();
+  }
+
+  function setClock(time) {
+    time = util.toMilliseconds(time);
+    if (currentTime === undefined) {
+      currentTime = time;
+    }
+    assert(time >= currentTime);
+    timeDiff = time - currentTime;
+    currentTime = time;
+  }
+
+  // TODO:
+  // If we take policies (as opposed to fixed (though settable) ratios) seriously,
+  // then more state info must be supplied here when getting the new ratios.
+  // We should probably just use policies purely for simulation purposes.
+  function updateRatios() {
+    chargeRatio = overProdPolicy();
+    dischargeRatio = underProdPolicy();
+  }
+
+  function updateBattery() {
+    finalBalance = battery.addDiffToLimit(finalBalance);
+  }
+
+  function updateBlackout() {
+    blackout = computeBlackout();
+  }
+
+  function updateBanned() {
+    banned = banDuration > 0;
+  }
+
+  // compute methods do not mutate state.
 
   function computeProduction(state) {
     return model.production(state);
@@ -271,31 +360,11 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     return model.consumption(state);
   }
 
-  function computeBannedTimer() {
-    // FIXME
+  function updateBanDuration() {
+    banDuration -= timeDiff;  // some time has passed
+    banDuration = Math.max(0, banDuration); // Never go below 0.
+    assert(banDuration >= 0);
   }
-
-  // TODO: use initially computed charge/discharge values?
-  // Or start over with the given surplus/deficit (after buying/selling from/to the grid)?
-  function updateBattery() {
-    // For now, simply try to add/remove demand to/from battery.
-    let surplus = -demand;
-    // Negative if removing too much (deficit); positive if adding too much (surplus).
-    surplus = battery.addDiffToLimit(surplus);
-    demand = -surplus;
-  }
-
-  function updateBlackout() {
-    // FIXME: what about available battery charge??
-    // Maybe take care of that in updateBattery?
-    blackout = computeBlackout();
-  }
-
-  function updateBanned() {
-    // FIXME
-  }
-
-  // compute... methods do not mutate state.
 
   /*
    * This is what we want to sell to or buy from the grid.
@@ -306,7 +375,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     if (offering > 0) {
       return -offering;
     }
-    const requesting = computeRequesting();
+    const requesting = computeDemanding();
     if (requesting > 0) {
       return requesting;
     }
@@ -337,7 +406,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
   /* How much do we want to try to buy?
    * Always non-negative.
    */
-  function computeRequesting() {
+  function computeDemanding() {
     assert(netProduction !== undefined);
     if (netProduction >= 0) {
       return 0; // Nothing needed.
@@ -352,7 +421,8 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
    */
   function computeDesiredCharge() {
     assert(netProduction >= 0);
-    return netProduction * chargeRatio; // FIXME: check battery
+    const cap = battery.capacity() - battery.currentCharge();
+    return Math.min(cap, netProduction * chargeRatio);
   }
 
   /* How much demand would we like to take from the battery?
@@ -362,84 +432,27 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
    */
   function computeDesiredDischarge() {
     assert(netProduction <= 0);
-    return Math.abs(netProduction) * dischargeRatio; // FIXME: check battery
+    const cap = battery.currentCharge();
+    return Math.min(cap, Math.abs(netProduction) * dischargeRatio);
   }
 
-  // TODO: Deprecated? Doesn't seem to be needed, since all the (rather trivial)
-  // work can be done in updateBlackout?
   function computeBlackout() {
-    // FIXME:
-    // compare requested to received electricity
-    // use a flag to decide whether available battery charge should be taken into account?
-    return demand > 0;
+    return finalBalance < 0;
   }
 
+  // These should always be true at the end of an update.
   function enforceInvariants() {
+    assert(netDemand == 0);
+    assert(netProduction == 0);
+    assert(bought == 0);
+    assert(sold == 0);
+    assert(finalBalance == 0);
+    assert(banDuration >= 0);
+    assert(chargeRatio >= 0 && chargeRatio <= 1);
+    assert(dischargeRatio >= 0 && dischargeRatio <= 1);
   }
 
-  init(state);
-  return obj;
 };
-
-// TODO: (High priority?) Add a constant term.
-// TODO: (Low priority) Also consider temperature: cold weather -> needs more heating -> greater consumption.
-// TODO: take peak times that can be passed to the peaks function? (Could allow variable length peaks.)
-// TODO: accept ranges (for offset and scale) instead of plain numbers?
-/*
- * Returns a consumption model that is a function from simulation state
- * (primarily time) to power consumption.
- * Expected args:
- * peakOffset, peakScale, dayNightOffset, dayNightScale, backgroundOffset, backgroundScale, noiseFunction, randomizeMissing=false
- */
-function ConsumptionModel(args) {
-  const rng = normalDistribution();
-  const m = 60*1000;
-  const h = m*60;
-  // Use random defaults for missing args?
-  const randomizeMissing = getArgOrDefault(args, 'randomizeMissing', () => false);
-  const defaults = cond(randomizeMissing);
-
-  // default to 0 or randomize to ±2h
-  const peakOffset = getArgOrDefault(args, 'peakOffset', defaults(rng(-2*h, 2*h), 0));  // equivalent to args?.peakOffset ?? (randomizeMissing ? rng(-2*h, 2*h) : 0);
-
-  // default to 0 or randomize to ±12h
-  const dayNightOffset = getArgOrDefault(args, 'dayNightOffset', defaults(rng(-12*h, 12*h), 0));
-
-  // default to 0 or randomize to ±1000
-  const backgroundOffset = getArgOrDefault(args, 'backgroundOffset', defaults(rng(-1000, 1000), 0));
-
-  // default to 1 or randomize to ±½
-  const peakScale = getArgOrDefault(args, 'peakScale', defaults(rng(0.5, 1.5), 1));
-
-  // default to 1 or randomize to ±½
-  const dayNightScale = getArgOrDefault(args, 'dayNightScale', defaults(rng(0.5, 1.5), 1));
-
-  // default to 1 or randomize to ±½
-  const backgroundScale = getArgOrDefault(args, 'backgroundScale', defaults(rng(0.5, 1.5), 1));
-
-  // default to 0 or randomize to [0,50[
-  const noiseFunction = getArgOrDefault(args, 'noiseFunction', defaults(() => () => rng(0, 50), () => () => 0)); // Add up to 50 W (25 on average)
-
-  /* Takes a state containing current date/time. (Just a Date object also works.)
-   */
-  return function(state) {
-    const date = state.date ?? state; // Work with both state and Date (deprecate?)
-    const t = millisecondsSinceMidnight(date);
-    const peak = peaks(t + peakOffset + dayNightOffset) * peakScale;  // peaks depend on both offsets
-    const dayNight = dayNightVariance(t + dayNightOffset) * dayNightScale;
-    const background = backgroundVariance(t + backgroundOffset) * backgroundScale;
-    return peak + background + dayNight + noiseFunction();
-  };
-};
-
-function cond(bool) {
-  return function(a1, a2) {
-    // Convert to functions if necessary.
-    const f1 = util.constantFunction(a1);
-    const f2 = util.constantFunction(a2);
-    return bool ? f1 : f2;
-  };
-}
 
 // Note: The default model uses randomization.
 function getDefaultModel() {
@@ -458,57 +471,4 @@ function getDefaultState() {
       // etc
     },
   };
-}
-
-// TODO: use ms = util.fromHours(h)
-/* Power consumption has peaks around certain times related to when people
- * work and sleep etc.
- * Takes time in milliseconds.
- */
-function peaks(t) {
-  const morningPeakStart = 6*60*60*1000;
-  const morningPeakEnd = 8*60*60*1000;
-  const morningPeakAmplitude = 100;
-  const lunchPeakStart = 12*60*60*1000;
-  const lunchPeakEnd = 13*60*60*1000;
-  const lunchPeakAmplitude = 150;
-  const eveningPeakStart = 18*60*60*1000;
-  const eveningPeakEnd = 22*60*60*1000;
-  const eveningPeakAmplitude = 300;
-  if (t >= morningPeakStart && t <= morningPeakEnd) {
-    return morningPeakAmplitude;
-  } else if (t >= lunchPeakStart && t <= lunchPeakEnd) {
-    return lunchPeakAmplitude;
-  } else if (t >= eveningPeakStart && t <= eveningPeakEnd) {
-    return eveningPeakAmplitude;
-  } else {
-    return 0;
-  }
-}
-
-/* Add a small background oscillation with a period on the order of a few
- * seconds.
- * Time in milliseconds.
- */
-function backgroundVariance(t) {
-  return 10 * (1 + Math.sin(t*1000)); // FIXME: period
-}
-
-// TODO: maybe a millisecond resolution is counter productive?
-// Maybe that is *too* smooth, and a choppier function would actually look more natural?
-/* Adds a day/night cycle: large-scale oscillation with a period of 24 hours.
- * Half of the day has high consumption, half the day has low consumption.
- * Takes time in milliseconds.
- */
-function dayNightVariance(t) {
-  const P = 24*60*60*1000;  // The period is P = 24 h = 3,600,000 ms
-  const b = (2*Math.PI)/P;
-  const peakOffset = 20*60*60*1000;  // Peak is 20:00
-  return 100 * (1 + Math.cos(b*(t-peakOffset)));
-}
-
-function millisecondsSinceMidnight(dateTime) {
-  const minutes = dateTime.getHours() * 60 + dateTime.getMinutes();
-  const seconds = minutes * 60 + dateTime.getSeconds();
-  return seconds * 1000 + dateTime.getMilliseconds();
 }
