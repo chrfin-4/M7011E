@@ -9,8 +9,6 @@ exports.Manager = Manager;
 exports.nopController = nopController;
 exports.defaultController = defaultController;
 
-// TODO: this is garbage. Needs lots of cleanup.
-
 // TODO: what is a reasonable power generation capacity for a coal plant?
 
 // FIXME: Should not be (completely) random.
@@ -24,7 +22,7 @@ const OFF = 0;
 
 // Simply set the desired state to the current state.
 function nopController(manager) {
-  if (manager.plantIsOn() || manager.plantIsTurningOn()) {
+  if (manager.productionIsOn() || manager.productionIsTurningOn()) {
     return ON;
   } else {
     return OFF;
@@ -38,7 +36,7 @@ function defaultController(manager, safetyFactor=5) {
   const demand = manager.currentPowerDemand();
   const capacity = (charge / 3600) * delay;
   // Turn on if battery cannot cover the demand.
-  return (capacity < demand * safetyFactor) ? PLANT_ON : PLANT_OFF;
+  return (capacity < demand * safetyFactor) ? ON : OFF;
 }
 
 // TODO: Needs a pricing model.
@@ -50,7 +48,6 @@ function defaultController(manager, safetyFactor=5) {
  */
 function Manager(model, state=getDefaultState(), args) {
 
-
   const transitionDelay = 30*1000; // 30 seconds
   const productionCap = getArgOrDefault(args, 'productionCapacity', () => 1e9); // 1 TW
   const batteryCap = getArgOrDefault(args, 'batteryCapacity', () => 270_000); // Wh
@@ -61,67 +58,97 @@ function Manager(model, state=getDefaultState(), args) {
   const plant = Powerplant(productionCap, 30_000);
 
   let currentPrice = 0.25;
-  //let productionStatus = false; // TODO: on/off or 0-100 % ???
   let production = 0; // TODO: make depend on initial state (plant on/off)
-  //let batteryCharge = 0;
   let currentWastedProduction = 0;
   let currentUnderProduction = 0;
   let totalWastedProduction = 0;
   let totalUnderProduction = 0;
   // These are set from the outside by state updates.
   let demand = 0;
-  let time = state.date.getTime(); // current time in ms
+  let currentTime = state.date.getTime(); // current time in ms
+  let timeDiff = 0;
   // These can be manually/explicitly set from the outside.
   // TODO: extract from model like this or use model.controller(...) ???
   let controller = getArgOrDefault(model, 'controller', () => defaultController);
   let desiredState = undefined;
 
   const obj = {
+    // --- Manager specific (not in prosumer/client) ---
     currentPrice() { return currentPrice; },
+
+    // --- Common to all prosumers ---
+
     currentPowerProduction() { return plant.currentPowerProduction(); },
-    productionStatus() { return productionStatus; },  // TODO: Deprecated
-    powerFailure() { return currentUnderProduction > 0; },  // XXX
+    // FIXME: how is the power consumption determined?
+    currentPowerConsumption() { return 0; },
     productionTransitionDelay() { return plant.transitionDelay(); },
-    currentPowerDemand() { return demand; },  // XXX
     batteryCharge() { return battery.currentCharge(); },
+    batteryChargePercent() { return battery.currentChargePercent(); },
     batteryCapacity() { return battery.capacity(); },
 
+    productionStatus() { return productionStatus; },  // TODO: Deprecated
+    powerFailure() { return currentUnderProduction > 0; },  // XXX
     nextPlantTransition() { return plant.transitionPoint(); },  // TODO: Deprecated
-    plantIsTurningOn() { return plant.isTurningOn(); },
-    plantIsTurningOff() { return plant.isTurningOff(); },
-    plantIsOn() { return plant.isOn(); },
-    plantIsOff() { return plant.isOff(); },
-    setPlantController(f) {
+    currentPowerDemand() { return demand; },  // XXX
+
+    productionIsTurningOn() { return plant.isTurningOn(); },
+    productionIsTurningOff() { return plant.isTurningOff(); },
+    productionIsOn() { return plant.isOn(); },
+    productionIsOff() { return plant.isOff(); },
+
+    /* How much electricity (Ws) the prosumer wants to sell.
+     * Always non-negative.
+     */
+    offeringToGrid() {
+      return this.currentPowerConsumption() * timeDiff;
+    },
+
+    /* How much electricity (Ws) the prosumer wants to buy.
+     * Always non-negative.
+     */
+    demandingFromGrid() {
+      return Math.max(0, this.netDemand());
+    },
+
+    /* Receive this much electricity (Ws) FROM the prosumer. */
+    sellToGrid(Ws) {
+      assert(updating);
+      assert(Ws >= 0);      // Must always be positive.
+      assert(netDemand <= 0);  // Can only sell something if surplus.
+      assert((sold + Ws) <= -netDemand); // Cannot sell more than offered.
+      assert(!this.isBanned()); // Cannot sell if banned.
+      netDemand += Ws;
+      totalSold += Ws;
+      sold += Ws;
+    },
+
+    setProductionController(f) {
       controller = f;
       return this;
     },
 
-    turnPlantOn() {
+    turnProductionOn() {
       plant.turnOn();
       return this;
     },
 
-    turnPlantOff() {
+    turnProductionOff() {
       plant.turnOff();
       return this;
     },
 
+    // TODO: does this even belong here? Or rather place in the simulation outside?
     // TODO: set immediately or remember until next update?
     setPrice(price) {
       currentPrice = price;
       return this;
     },
 
-    // TODO: call updateState at instantiation time?
-    // That makes sure everything is initialized the way it is on every
-    // update. However, a duration of 0 could cause problems?
     updateState(state) {
-      const now = state.date.getTime()
-      const duration = now - time;
-      time = now;
+      setClock(state.date);
       const demand = state.demand;
-      plant.setTime(time);
-      updateBalance(duration, demand);
+      plant.setTime(currentTime);
+      updateBalance(timeDiff, demand);
       // Update production status last.
       updateProductionState();
       enforceInvariants();
@@ -129,8 +156,18 @@ function Manager(model, state=getDefaultState(), args) {
     },
   };
 
+  function setClock(time) {
+    time = util.toMilliseconds(time);
+    if (currentTime === undefined) {
+      currentTime = time;
+    }
+    assert(time >= currentTime);
+    timeDiff = time - currentTime;
+    currentTime = time;
+  }
+
   function updateProductionState() {
-    // Explicitly state set overrides controller.
+    // Explicitly set state overrides controller.
     if (desiredState === undefined) {
       // Only consult controller if nothing set.
       desiredState = controller(obj);
@@ -141,6 +178,8 @@ function Manager(model, state=getDefaultState(), args) {
       }
     }
   }
+
+  // FIXME: this needs to happen at the end of update, after buying/selling
 
   // Updates battery charge and (current and total) wasted/under production.
   function updateBalance(duration, demand) {
@@ -173,23 +212,6 @@ function Manager(model, state=getDefaultState(), args) {
   }
 
 };
-
-function isNaN(n) {
-  return typeof(n) == 'number' && !(n >= 0 || n <= 0);
-}
-
-function plantStateToString(state) {
-  if (state == PLANT_ON) {
-    return 'PLANT_ON';
-  } else if (state == PLANT_OFF) {
-    return 'PLANT_OFF';
-  } else if (state == PLANT_TURNING_ON) {
-    return 'PLANT_TURNING_ON';
-  } else if (state == PLANT_TURNING_OFF) {
-    return 'PLANT_TURNING_OFF';
-  }
-  return undefined;
-}
 
 function ManagerModel() {
   return {

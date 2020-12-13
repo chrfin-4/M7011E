@@ -10,40 +10,6 @@ exports.ConsumptionModel = ConsumptionModel;
 exports.Prosumer = Prosumer;
 
 /*
- * A prosumer has a certain level of production/consumption (in Watts) at a particular
- * point in time (that is set at each update).
- * Until the next update some amount of electricity as been produced/consumed (in Ws).
- * During that update, some electricity is bought/sold. At that point, demands are
- * actually satisfied (or not) and batteries charged/discharged.
- *
- * This means production refers to what can be "manufactured" rather than sold, and
- * consumption refers to needs/requirements (which may or may not end up being met)
- * rather than power actually being used.
- *
- * So a prosumer basically says "this is how much I am producing, and this is how much
- * I need". That statement doesn't say anything about where production is going or from
- * where demand is satisfied.
- *
- * A prosumer can *also* say "I would like to sell this much" or "I would like to buy
- * this much". That does not mean that amount will be sold/bought.
- *
- * Note that battery charge/discharge does not count as consumption/production!
- *
- * This also means that production and consumption are not affected by ratio settings.
- * It's only when electricity is bought/sold that the over/under production is truly
- * known and a decision can be made about where to put the available electricity
- * (how much surplus can be put into the battery) and from where to take the needed
- * electricity (grid or battery).
- *
- * It's possible to sell less than was offered (when less is bought), and it's
- * possible to buy less than demanded (when less is sold).
- *
- * Could we just deal with each moment in time, and thus W rather than Ws?
- * No. Probably not. Because you can't store Watts in a battery. So we have to deal with
- * discrete chunks/intervals of time.
- */
-
-/*
  * Based on ??? (article)
  * 10-11 kWh/day is a good average consumption.
  * Values between 3.3 and 26.2 are plausible.
@@ -120,32 +86,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
 
   const obj = {
 
-    setChargeRatio(ratio) {
-      assert(ratio >= 0 && ratio <= 1);
-      overProdPolicy = () => ratio;
-      return this;
-    },
-
-    setDischargeRatio(ratio) {
-      assert(ratio >= 0 && ratio <= 1);
-      underProdPolicy = () => ratio;
-      return this;
-    },
-
-    // --- These only make sense between updates. ---
-
-    /* How much power (W) is currently being produced. */
-    currentPowerProduction() { return currentProduction; },
-    /* How much power (W) is currently needed. */
-    currentPowerConsumption() { return currentConsumption; },
-    /* How much excess power (W) is currently being produced - may be negative. */
-    currentNetPowerProduction() { return currentProduction - currentConsumption; },
-    /* Currently experiencing a blackout? */
-    isBlackedOut() { return blackout; },
-    /* Currently banned from selling? */
-    isBanned() {
-      return banned;
-    },
+    // --- Prosumer (client) specific (not in Manager) ---
 
     // TODO: Really acceptable behavior? If a short ban is placed immediately after
     // an update and it expires before the next update, then the ban has no effect!
@@ -161,9 +102,50 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
       return this;
     },
 
+    /* Currently banned from selling? */
+    isBanned() {
+      return banned;
+    },
+
+    // --- Common to all prosumers ---
+
+    setChargeRatio(ratio) {
+      assert(ratio >= 0 && ratio <= 1);
+      overProdPolicy = () => ratio;
+      return this;
+    },
+
+    setDischargeRatio(ratio) {
+      assert(ratio >= 0 && ratio <= 1);
+      underProdPolicy = () => ratio;
+      return this;
+    },
+
+    getChargeRatio() { return chargeRatio; },
+    getDischargeRatio() { return dischargeRatio; },
+
+    // --- These only make sense between updates. ---
+
+    /* How much power (W) is currently being produced. */
+    currentPowerProduction() { return currentProduction; },
+    /* How much power (W) is currently needed. */
+    currentPowerConsumption() { return currentConsumption; },
+    /* How much excess power (W) is currently being produced - may be negative. */
+    currentNetPowerProduction() { return currentProduction - currentConsumption; },
+    // Regular prosumers have no transition delay.
+    // XXX: Transitional method.
+    // This should be generalized so that managers and prosumers are both just
+    // prosumers, and one happens to have one kind of power generation while
+    // the other has another kind, each with whatever parameters (including
+    // transition delay) that they have.
+    productionTransitionDelay() { return 0; },
+    /* Currently experiencing a blackout? */
+    isBlackedOut() { return blackout; },
+
     batteryCharge() { return battery.currentCharge(); },
     // % charged
     batteryChargePercent() { return battery.currentChargePercent(); },
+    batteryCapacity() { return battery.capacity(); },
 
     // --- These only make sense during updates. ---
 
@@ -217,17 +199,6 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
       sold += Ws;
     },
 
-  /* On start update:
-   * - Use production/consumption (W) from previous update and time difference
-   *   to compute net production (Ws) for that interval of time.
-   * - Use net production and ratios to determine how much to offer/request.
-   * On finish update:
-   * - Use bought/sold electricity (Ws) from/to the grid and ratios to update battery.
-   * - Compute new production/consumption (W) for next update.
-   *
-   * Ratios can only be updated between updates, not during.
-   */
-
     /*
      * Assumes that the previous production/consumption applies since the last update
      * until now.
@@ -242,6 +213,20 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
       return this;
     },
 
+    // TODO: deprecated? Add some sort of currentState method that returns all properties.
+    currentState() {
+      return {
+        consumption: currentConsumption,
+        production: currentProduction,
+        blackout,
+        banDuration,
+        batteryCharge: battery.currentCharge(),
+        batteryCapacity: battery.capacity(),
+        chargeRatio,
+        dischargeRatio,
+      };
+    }
+
   };
 
   init(state);
@@ -252,25 +237,6 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     currentConsumption = computeConsumption(state);
     currentTime = util.toMilliseconds(state.date);
   }
-
-  // Whenever the duration is known, we can choose to use either
-  // the power from the previous update or the current power.
-  // However, demand satisfaction must lag one way or another!
-  // Because otherwise we would look at how much electricity we got, THEN decide how
-  // much we need, and then possibly declare a blackout because we didn't get enough.
-  // One might claim that the needed power should be available on demand when it is
-  // needed, and so we can set power and electricity simultaneously and expect the
-  // new demand to be met. But then we can only check whether it was in fact met
-  // when we get the new update!
-  //
-  // So it's possible to update production and demand simultaneously (at the
-  // end of update), then check old demand vs accumulated supply. But it's also possible
-  // to compute current production at the start of the update, and then compare current
-  // deman vs accumulated supply at the end.
-  //
-  // An advantage of splitting updates into start/finish is that we get the outcome
-  // of an update within a single "turn", rather than having to wait until the next
-  // update to see what happened.
 
   /* Update time.
    * Figure out demand based on current state (production,
@@ -350,6 +316,12 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     banned = banDuration > 0;
   }
 
+  function updateBanDuration() {
+    banDuration -= timeDiff;  // some time has passed
+    banDuration = Math.max(0, banDuration); // Never go below 0.
+    assert(banDuration >= 0);
+  }
+
   // compute methods do not mutate state.
 
   function computeProduction(state) {
@@ -358,12 +330,6 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
 
   function computeConsumption(state) {
     return model.consumption(state);
-  }
-
-  function updateBanDuration() {
-    banDuration -= timeDiff;  // some time has passed
-    banDuration = Math.max(0, banDuration); // Never go below 0.
-    assert(banDuration >= 0);
   }
 
   /*
@@ -458,7 +424,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
 function getDefaultModel() {
   return {
     consumption: ConsumptionModel({randomizeMissing:true}),
-    production: () => 200,  // FIXME: need an actual production model
+    production: () => 200 + normalDistribution()(0, 200),  // FIXME: need an actual production model
   };
 }
 

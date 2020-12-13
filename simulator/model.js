@@ -1,5 +1,5 @@
 const prosumer = require('./prosumer.js');
-const manager = require('./manager.js');
+const Manager = require('./manager.js').Manager;
 const Weather = require('./weather.js').Weather;
 const Powerplant = require('./powerplant.js').Powerplant;
 const util = require('./util.js');
@@ -7,8 +7,7 @@ const assert = util.assert;
 
 exports.Prosumer = prosumer.Prosumer;
 exports.prosumer = prosumer;
-exports.Manager = manager.Manager;
-exports.manager = manager;
+exports.Manager = Manager;
 exports.ConsumptionModel = prosumer.ConsumptionModel; // Deprecated
 exports.Sim = Sim;
 
@@ -28,7 +27,7 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
   let powerPlant = Powerplant(1e9, 30_000);
   let blackout = false; // At least one home is not getting its demands met.
 
-  const timeFactor = speed;
+  const timeFactor = speed; // TODO: do we want to be able to adjust this?
   let simTime = util.toMilliseconds(t0);
   let weather = weatherModel?.currentWeather(simTime);
   const electricityPrice = 23.50;  // FIXME: must get updated
@@ -45,26 +44,42 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
 
   const obj = {
     // --- Model stuff. ---
-    prosumer(id) { return prosumers[id]; },
-    currentMargetDemand() { return marketDemand; },
+    prosumer(id) { return prosumers[id]; }, // TODO: remove. Add methods for manipulating prosumers instead.
+    prosumerStates() {
+      const arr = [];
+      for (let id in prosumers) {
+        state = prosumers[id].currentState();
+        state.id = id;  // XXX: Prosumers should probably have their IDs.
+        arr.push(state);
+      }
+      return arr;
+    },
+    currentMarketDemand() { return marketDemand; },
     currentElectricityPrice() { return electricityPrice; },
     currentWeather() { return weather; },
     // TODO: add more methods for simulating prosumer/manager actions
     // (like getting consumption/production for a specific user, setting
     // charge/sell ratios, etc.)
 
+    // FIXME: should there be a special method for this? Get a manager by ID as
+    // one of the prosumers?
+    manager() { return manager; },
+
     // --- Simulator-specific stuff. ---
 
     simulationTime() { return simTime; },
     isRunning() { return running; },
 
+  // FIXME: use clearTimeout when stopping
     stopSimulation() {
       assert(running);  // TODO: necessary/useful?
       running = false;
     },
 
     // Step forward in simulation time.
-    advanceSimulationBy(interval=1000, steps=1) {
+    advanceSimulationBy(interval, steps=1) {
+      interval = Number(interval);
+      steps = Number(steps);
       assert(!running);
       assert(interval > 0);
       for (let i = 0; i < steps; i++) {
@@ -73,6 +88,8 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
     },
 
     advanceSimulationTo(simulationTime, steps=1) {
+      simulationTime = Number(simulationTime);
+      steps = Number(steps);
       assert(simulationTime > simTime);  // Must be in the future.
       assert(steps >= 1);
       const diff = simulationTime - simTime;
@@ -80,6 +97,7 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
       this.advanceSimulationBy(interval, steps);
     },
 
+    // TODO: speed should be settable here?
     /* Interval controls how often the simulation is updated.
      * (In real time, not simulation time.)
      */
@@ -108,6 +126,7 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
     supply = satisfyDemand(supply);
   }
 
+  // FIXME: capture the setTimeout id so we can use it when stopping
   function loop() {
     // Use inner function to prevent the first update from happening immediately.
     // It's unclear which is the most desirable behavior.
@@ -125,6 +144,7 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
   // TODO: note: pooling all production into a big pot probably doesn't work.
   // After all, if the power plant uses its own power to charge its batteries,
   // it's not buying it from anyone.
+  // But if everyone buys and sells at the same price, does it matter?
   /* Return the net demand placed on the grid, summed over all prosumers. */
   function getTotalNetDemand(state) {
     let sum = 0;
@@ -151,6 +171,7 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
     return supply;
   }
 
+  // XXX: this should happen when manager is updated
   function updatePowerPlant() {
     powerPlant.setTime(simTime);
   }

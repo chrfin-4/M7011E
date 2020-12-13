@@ -61,19 +61,12 @@ exports.now = function() {
   return new Date().getTime();
 }
 
-// TODO: Deprecated. Use toMilliseconds.
-function milliseconds(date) {
-  if (typeof(date) == 'number') {
-    return date;
-  }
-  return date.getTime();
-}
-
 // Convert Date to milliseconds or return as is.
 function toMilliseconds(date) {
   if (typeof(date) == 'number') {
     return date;
   }
+  // Assume it's a Date.
   return date.getTime();
 }
 
