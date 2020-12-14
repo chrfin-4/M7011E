@@ -13,8 +13,8 @@ exports.Sim = Sim;
 
 /*
  * t0 sets the (real) start time.
- * Speed controls how fast the clock ticks in the simulation.
- * speed=1 => 1 second per second
+ * The timeFactor controls how fast the clock ticks in the simulation.
+ * timeFactor=1 => 1 second per second
  */
 function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
 
@@ -108,9 +108,9 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
       this.advanceSimulationBy(interval, steps);
     },
 
-    // TODO: speed should be settable here?
-    /* Interval controls how often the simulation is updated.
+    /* The interval controls how often the simulation is updated.
      * (In real time, not simulation time.)
+     * The timeFactor controls how fast the simulation clock ticks.
      */
     startSimulation(interval=500, speed=timeFactor) {
       assert(!running);  // can only start once
