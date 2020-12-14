@@ -1,5 +1,6 @@
 const express = require('express');
 const model = require('./model.js');
+const api = require('./api.js');
 
 const app = express();
 
@@ -17,6 +18,8 @@ console.log('starting simulation ...');
 sim.startSimulation(1000);  // update each second
 
 // ==== Routes ==== (temporary/experimental)
+// THESE ARE ALL DEPRECATED NOW!
+// Use the GraphQL API instead.
 
 app.get(windUrl, handler(getWindSpeed));
 app.get(consumptionUrl, handler(getPowerConsumption));  // XXX: Deprecated
@@ -53,7 +56,11 @@ app.post('/sim/advanceBy/:interval/:steps?', advanceSimBy);
 //app.post('/sim/advanceTo/:simtime/:steps?', advanceSimTo);  // This probably doesn't make much sense.
 app.get('/sim/time', handler(simTime));
 
+// ==== Start server ====
+
 const server = app.listen(port, nop);
+const apollo = api.getApi(sim);
+apollo.listen(4000);
 
 // ==== Handlers ====
 

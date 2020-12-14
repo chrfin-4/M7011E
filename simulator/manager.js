@@ -137,6 +137,7 @@ function Manager(model, state=getDefaultState(), args) {
       return this;
     },
 
+    // FIXME: no, it does not
     // TODO: does this even belong here? Or rather place in the simulation outside?
     // TODO: set immediately or remember until next update?
     setPrice(price) {
@@ -154,6 +155,22 @@ function Manager(model, state=getDefaultState(), args) {
       enforceInvariants();
       return this;
     },
+
+    currentState() {
+      const manager = this;
+      return {
+        powerConsumption: manager.currentPowerConsumption(),
+        powerProduction: manager.currentPowerProduction(),
+        battery: {
+          charge: battery.currentCharge(),
+          capacity: battery.capacity(),
+        },
+        // TODO: try to capture transition here??
+        // Or add an extra field for that?
+        productionStatus: (manager.productionIsOn() ? 100 : 0),
+      };
+    }
+
   };
 
   function setClock(time) {

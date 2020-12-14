@@ -132,6 +132,9 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     currentPowerConsumption() { return currentConsumption; },
     /* How much excess power (W) is currently being produced - may be negative. */
     currentNetPowerProduction() { return currentProduction - currentConsumption; },
+    /* Currently experiencing a blackout? */
+    isBlackedOut() { return blackout; },
+
     // Regular prosumers have no transition delay.
     // XXX: Transitional method.
     // This should be generalized so that managers and prosumers are both just
@@ -139,8 +142,11 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     // the other has another kind, each with whatever parameters (including
     // transition delay) that they have.
     productionTransitionDelay() { return 0; },
-    /* Currently experiencing a blackout? */
-    isBlackedOut() { return blackout; },
+    // XXX: These are NOPs at the moment. In the future, any prosumer may or
+    // may not be able to turn production on/off, depending on how they are
+    // producing electricity. (Should depend on an object they contain.)
+    turnProductionOn() { return this; },
+    turnProductionOff() { return this; },
 
     batteryCharge() { return battery.currentCharge(); },
     // % charged
@@ -216,14 +222,18 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     // TODO: deprecated? Add some sort of currentState method that returns all properties.
     currentState() {
       return {
-        consumption: currentConsumption,
-        production: currentProduction,
+        powerConsumption: currentConsumption,
+        powerProduction: currentProduction,
         blackout,
         banDuration,
-        batteryCharge: battery.currentCharge(),
-        batteryCapacity: battery.capacity(),
+        banned: banDuration > 0,
+        battery: {
+          charge: battery.currentCharge(),
+          capacity: battery.capacity(),
+        },
         chargeRatio,
         dischargeRatio,
+        productionStatus: 100,  // XXX: always on for now
       };
     }
 

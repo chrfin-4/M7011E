@@ -1,0 +1,58 @@
+type Query {
+  prosumerStates: [Prosumer!]!
+  prosumerState(id: ID!): Prosumer
+  weather: Weather!
+  marketDemand: Float!
+  currentPrice: Float!
+  modelledPrice: Float
+
+  simulation: Simulation  # mostly for getting time
+}
+
+type Mutation {
+  # Note that setting charge/discharge ratios only take effect on the next update.
+  setChargeRatio(id: ID!, ratio: Float!): Prosumer!
+  setDischargeRatio(id: ID!, ratio: Float!): Prosumer!
+  banProducer(id: ID!, duration: Int!): Prosumer!
+  turnProductionOn(id: ID!): Prosumer!
+  turnProductionOff(id: ID!): Prosumer!
+  setProductionLevel(id: ID!, percent: Int!): Prosumer!
+
+  # Simulation
+  startSimulation(interval: Int, speed: Float): Simulation!
+  stopSimulation: Simulation!
+  advanceBy(interval: Int!, steps: Int): Simulation!
+  # Also need a restart or reset?
+}
+
+# A discharge ratio makes sense for a manager prosumer as well, since
+# a manager could be able to vary its production between 0 and 100 %,
+# depending on its power generation method.
+
+type Prosumer {
+  powerConsumption: Float!
+  powerProduction: Float!
+  chargeRatio: Float!
+  dischargeRatio: Float!
+  banned: Boolean!
+  banDuration: Int
+  blackout: Boolean!
+  productionStatus: Int!
+  battery: Battery
+}
+
+type Battery {
+  charge: Float!
+  capacity: Float!
+}
+
+type Weather {
+  windSpeed: Float!
+}
+
+type Simulation {
+  time: String!   # simulation time as a string
+  startTime: String!
+  duration: Int!
+  prosumers: Int!
+}

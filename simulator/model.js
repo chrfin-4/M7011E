@@ -16,22 +16,22 @@ exports.Sim = Sim;
  * Speed controls how fast the clock ticks in the simulation.
  * speed=1 => 1 second per second
  */
-function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
+function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
 
   let running = false;
   let consumers;
-  let manager;
+  let manager = Manager();  // FIXME: either take as parameter or make sure to use appropriate args here
   let marketDemand;
   // FIXME: manager should probably have its own power plant?
   // Should also be a parameter.
   let powerPlant = Powerplant(1e9, 30_000);
   let blackout = false; // At least one home is not getting its demands met.
 
-  const timeFactor = speed; // TODO: do we want to be able to adjust this?
   let simTime = util.toMilliseconds(t0);
   let weather = weatherModel?.currentWeather(simTime);
   const electricityPrice = 23.50;  // FIXME: must get updated
   let updateInterval;
+  let timeoutToken;
 
   function currentState() {
     return {
@@ -43,8 +43,13 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
   };
 
   const obj = {
+    prosumer(id) {
+      return prosumers[id];
+    },
     // --- Model stuff. ---
-    prosumer(id) { return prosumers[id]; }, // TODO: remove. Add methods for manipulating prosumers instead.
+    prosumerState(id) {
+      return prosumers[id].currentState();
+    },
     prosumerStates() {
       const arr = [];
       for (let id in prosumers) {
@@ -54,8 +59,13 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
       }
       return arr;
     },
+    setElectricityPrice(price) {
+      electricityPrice = price;
+      return this;
+    },
     currentMarketDemand() { return marketDemand; },
     currentElectricityPrice() { return electricityPrice; },
+    modelledElectricityPrice() { return electricityPrice; }, // FIXME: add pricing model
     currentWeather() { return weather; },
     // TODO: add more methods for simulating prosumer/manager actions
     // (like getting consumption/production for a specific user, setting
@@ -74,6 +84,7 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
     stopSimulation() {
       assert(running);  // TODO: necessary/useful?
       running = false;
+      clearTimeout(timeoutToken);
     },
 
     // Step forward in simulation time.
@@ -101,11 +112,21 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
     /* Interval controls how often the simulation is updated.
      * (In real time, not simulation time.)
      */
-    startSimulation(interval=500) {
+    startSimulation(interval=500, speed=timeFactor) {
       assert(!running);  // can only start once
       updateInterval = interval;
+      timeFactor = speed;
       running = true;
       loop();
+    },
+
+    currentState() {
+      return {
+        time: simTime,
+        startTime: t0,
+        duration: simTime - t0,
+        prosumers: prosumers.length, // XXX: adding 1 for the manager??
+      };
     },
 
   };
@@ -126,7 +147,6 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
     supply = satisfyDemand(supply);
   }
 
-  // FIXME: capture the setTimeout id so we can use it when stopping
   function loop() {
     // Use inner function to prevent the first update from happening immediately.
     // It's unclear which is the most desirable behavior.
@@ -135,9 +155,9 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), speed=1) {
         return;
       }
       stepBy(updateInterval * timeFactor);
-      setTimeout(() => inner(), updateInterval);
+      timeoutToken = setTimeout(() => inner(), updateInterval);
     }
-    setTimeout(() => inner(), updateInterval);
+    timeoutToken = setTimeout(() => inner(), updateInterval);
   }
 
   // FIXME: not complete

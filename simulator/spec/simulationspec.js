@@ -133,3 +133,32 @@ describe("running simulation", function() {
   });
 
 });
+
+describe("restarting simulation", function() {
+
+  beforeEach(function() {
+    jasmine.clock().install();
+  });
+
+  afterEach(function() {
+    jasmine.clock().uninstall();
+  });
+
+  // FIXME: cleanup (in particular fix the documentation/description)
+
+  it("should cancel periodic updates", function() {
+    const t0 = now();
+    const sim = Sim(null, undefined, t0);
+    expect(sim.simulationTime()).toBe(t0);
+    sim.startSimulation(1000);  // update each second
+    expect(sim.simulationTime()).toBe(t0);
+    jasmine.clock().tick(1500); // one update
+    expect(sim.simulationTime()).toBe(t0 + seconds(1));
+    sim.stopSimulation(); // Stopping before second update
+    expect(sim.simulationTime()).toBe(t0 + seconds(1));
+    sim.startSimulation(1000);  // Start again (scheduling an update 1 second from now)
+    jasmine.clock().tick(1000); // Advancing time 1 second.
+    expect(sim.simulationTime() - t0).toBe(seconds(2)); // Two 1 second updates should have happened.
+  });
+
+});
