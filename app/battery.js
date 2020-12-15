@@ -26,6 +26,7 @@ function Battery(capacity, initialCharge=0) {
     capacity() { return batteryCapacity; },
     currentCharge() { return batteryCharge; },
     currentChargePercent() { return (batteryCharge/batteryCapacity)*100; },
+    remainingCapacity() { return batteryCapacity - batteryCharge; },
 
     /* Add some charge to the battery and return new battery charge.
      * Wh must be non-negative.
