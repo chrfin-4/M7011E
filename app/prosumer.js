@@ -186,8 +186,8 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     /* Send this much electricity (Ws) TO the prosumer. */
     buyFromGrid(Ws) {
       assert(updating);
-      assert(Ws >= 0);      // Must always be positive.
-      assert(netDemand >= 0);  // Can only buy something if deficit.
+      assert(Ws >= 0);      // Must always be non-negative.
+      assert(Ws == 0 || netDemand >= 0);  // Can only buy something if deficit.
       assert((bought + Ws) <= netDemand); // Cannot buy more than requested.
       totalBought += Ws;
       bought += Ws;
@@ -197,7 +197,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     sellToGrid(Ws) {
       assert(updating);
       assert(Ws >= 0);      // Must always be positive.
-      assert(netDemand <= 0);  // Can only sell something if surplus.
+      assert(Ws == 0 || netDemand <= 0);  // Can only sell something if surplus.
       assert((sold + Ws) <= -netDemand); // Cannot sell more than offered.
       assert(!this.isBanned()); // Cannot sell if banned.
       netDemand += Ws;
