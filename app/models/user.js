@@ -17,17 +17,17 @@ const userSchema = new Schema({
   },
   consumerData: {
     type: [
-      {
-        type: Number,
-        required: true
-      }
     ],
     required: false
   },
   prosumerData: {
-    battery: {
-      type: Schema.Types.ObjectId,
-      ref: 'Battery'
+    banned: {
+      type: Boolean,
+      required: true
+    },
+    houseId: {
+      type: Number,
+      required: true
     }
   },
   managerData: {
