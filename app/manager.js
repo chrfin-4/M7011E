@@ -71,12 +71,19 @@ function Manager(model, state=getDefaultState(), args) {
   // TODO: extract from model like this or use model.controller(...) ???
   let controller = getArgOrDefault(model, 'controller', () => defaultController);
   let desiredState = undefined;
+  let chargeRatio = 0.5;
 
   const obj = {
     // --- Manager specific (not in prosumer/client) ---
     currentPrice() { return currentPrice; },
 
     // --- Common to all prosumers ---
+
+    setChargeRatio(ratio) {
+      assert(ratio >= 0 && ratio <= 1);
+      chargeRatio = ratio;
+      return this;
+    },
 
     currentPowerProduction() { return plant.currentPowerProduction(); },
     // FIXME: how is the power consumption determined?
@@ -100,26 +107,32 @@ function Manager(model, state=getDefaultState(), args) {
      * Always non-negative.
      */
     offeringToGrid() {
-      return this.currentPowerConsumption() * timeDiff;
+      if (this.productionIsOff()) {
+        return this.batteryCharge();  // use production XOR battery
+      }
+      const production = this.currentPowerProduction() * timeDiff;
+      const chargeCap = battery.remainingCapacity();
+      const charge = Math.min(production * chargeRatio, chargeCap);
+      const sell = production - charge;
+      return sell;
     },
 
     /* How much electricity (Ws) the prosumer wants to buy.
      * Always non-negative.
      */
     demandingFromGrid() {
-      return Math.max(0, this.netDemand());
+      return 0; // XXX: is this correct? Can a manager buy from the grid?
+    },
+
+    // FIXME: how does this differ from a client prosumer? Does it even make sense to have here?
+    netDemand() {
+      return -this.offeringToGrid();
     },
 
     /* Receive this much electricity (Ws) FROM the prosumer. */
     sellToGrid(Ws) {
-      assert(updating);
       assert(Ws >= 0);      // Must always be positive.
-      assert(netDemand <= 0);  // Can only sell something if surplus.
-      assert((sold + Ws) <= -netDemand); // Cannot sell more than offered.
-      assert(!this.isBanned()); // Cannot sell if banned.
-      netDemand += Ws;
-      totalSold += Ws;
-      sold += Ws;
+      // FIXME: need to keep track of this and then use it to update the battery
     },
 
     setProductionController(f) {
@@ -145,7 +158,7 @@ function Manager(model, state=getDefaultState(), args) {
       return this;
     },
 
-    updateState(state) {
+    startUpdate(state) {
       setClock(state.date);
       const demand = state.demand;
       plant.setTime(currentTime);
@@ -153,6 +166,16 @@ function Manager(model, state=getDefaultState(), args) {
       // Update production status last.
       updateProductionState();
       enforceInvariants();
+      return this;
+    },
+
+    finishUpdate(state) {
+      // Update battery.
+    },
+
+    // FIXME: Deprecated. Use startUpdate and finishUpdate instead.
+    updateState(state) {
+      this.startUpdate(state);
       return this;
     },
 
@@ -165,6 +188,7 @@ function Manager(model, state=getDefaultState(), args) {
           charge: battery.currentCharge(),
           capacity: battery.capacity(),
         },
+        chargeRatio,
         // TODO: try to capture transition here??
         // Or add an extra field for that?
         productionStatus: (manager.productionIsOn() ? 100 : 0),
