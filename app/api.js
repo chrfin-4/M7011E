@@ -62,7 +62,7 @@ function getResolvers(sim) {
         return resolvers.Mutation.setProductionLevel(null, {id, percent: 100});
       },
 
-      turnProductionOff(_, args) {
+      turnProductionOff(_, {id}) {
         return resolvers.Mutation.setProductionLevel(null, {id, percent: 0});
       },
 
