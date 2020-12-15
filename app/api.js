@@ -27,7 +27,7 @@ function getResolvers(sim) {
       weather: () => sim.currentWeather(),
       marketDemand: () => sim.currentMarketDemand(),
       currentPrice: () => sim.currentElectricityPrice(),
-      modelledPrice: () => sim.modelledElectricityPrice(),
+      modeledPrice: () => sim.modelledElectricityPrice(),
       simulation: () => sim.currentState(),
     },
 

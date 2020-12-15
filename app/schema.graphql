@@ -4,7 +4,7 @@ type Query {
   weather: Weather!
   marketDemand: Float!
   currentPrice: Float!
-  modelledPrice: Float
+  modeledPrice: Float
 
   simulation: Simulation  # mostly for getting time
 }
