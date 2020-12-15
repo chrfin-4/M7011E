@@ -5,6 +5,9 @@
 # Editor files
 *.swp
 
+# Just don't deploy these
+nodemon.json
+
 # Logs
 logs
 *.log

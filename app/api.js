@@ -1,22 +1,4 @@
-const path = require('path');
-const fs = require('fs');
-const { ApolloServer } = require('apollo-server');
-
-exports.getApi = getApi;
-
-function getApi(sim) {
-  return new ApolloServer({
-    typeDefs: getTypeDefs(),
-    resolvers: getResolvers(sim),
-    resolverValidationOptions: {
-      requireResolversForResolveType: false
-    },
-  });
-}
-
-function getTypeDefs() {
-  return fs.readFileSync(path.join(__dirname, 'schema.graphql'), 'utf-8');
-}
+module.exports = getResolvers;
 
 function getResolvers(sim) {
   const resolvers = {
@@ -27,7 +9,7 @@ function getResolvers(sim) {
       weather: () => sim.currentWeather(),
       marketDemand: () => sim.currentMarketDemand(),
       currentPrice: () => sim.currentElectricityPrice(),
-      modelledPrice: () => sim.modelledElectricityPrice(),
+      modelledPrice: () => 50, // sim.modelledElectricityPrice(),
       simulation: () => sim.currentState(),
     },
 
