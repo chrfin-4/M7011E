@@ -1,5 +1,6 @@
 const util = require('./util.js');
 const Battery = require('./battery.js').Battery;
+const WindTurbine = require('./turbine.js').WindTurbine;
 const assert = util.assert;
 const assertIsNumber = util.assertIsNumber;
 const getArgOrDefault = util.getArgOrDefault;
@@ -432,9 +433,10 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
 
 // Note: The default model uses randomization.
 function getDefaultModel() {
+  const turbine = WindTurbine();
   return {
     consumption: ConsumptionModel({randomizeMissing:true}),
-    production: () => 200 + normalDistribution()(0, 200),  // FIXME: need an actual production model
+    production: ({weather}) => turbine(weather.windSpeed),
   };
 }
 
