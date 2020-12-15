@@ -202,7 +202,7 @@ function simTime() {
 function makeProsumers(count=100) {
   let prosumers = {};
   for (let i = 0; i < count; i++) {
-    prosumers[i] = model.Prosumer();
+    prosumers[i] = model.Prosumer().setId(i);
   }
   return prosumers;
 }

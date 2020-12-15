@@ -42,17 +42,19 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
 
   const obj = {
     prosumer(id) {
+      if (id == -1) {
+        return manager;
+      }
       return prosumers[id];
     },
     // --- Model stuff. ---
     prosumerState(id) {
-      return prosumers[id].currentState();
+      return this.prosumer(id).currentState();
     },
     prosumerStates() {
       const arr = [];
       for (let id in prosumers) {
         state = prosumers[id].currentState();
-        state.id = id;  // XXX: Prosumers should probably have their IDs.
         arr.push(state);
       }
       return arr;
@@ -142,6 +144,8 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
     manager.updateState({ ...state, demand: marketDemand });
     const managerSupply = manager.offeringToGrid();
     const { bought, sold } = performExchange(supply+managerSupply, demand);
+    assert(bought >= 0);
+    assert(sold >= 0);
     assert(Math.round(bought) == Math.round(sold));
   }
 
@@ -164,7 +168,9 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
     for (id in prosumers) {
       const prosumer = prosumers[id];
       prosumer.startUpdate(state);
-      supply += prosumer.offeringToGrid();
+      if (!prosumer.isBanned()) {
+        supply += prosumer.offeringToGrid();
+      }
       demand += prosumer.demandingFromGrid();
     }
     return {supply, demand};

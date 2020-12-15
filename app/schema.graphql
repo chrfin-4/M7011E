@@ -30,6 +30,7 @@ type Mutation {
 # depending on its power generation method.
 
 type Prosumer {
+  id: ID!
   powerConsumption: Float!
   powerProduction: Float!
   chargeRatio: Float!

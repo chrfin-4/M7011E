@@ -32,9 +32,6 @@ function getResolvers(sim) {
     },
 
     Mutation: {
-      // XXX: Setting charge/discharge ratio currently only works with
-      // prosumers. Should eventually be extended to also work on the
-      // manager(s).
       setChargeRatio(_, {id, ratio}) {
         try {
           return sim.prosumer(id).setChargeRatio(ratio).currentState();
@@ -51,16 +48,13 @@ function getResolvers(sim) {
         }
       },
 
-      // XXX: takes and ID even though there currently only exists one manager.
-      // Should work with any prosumer in the future, and then ID is required.
       setProductionLevel(_, {id, percent}) {
-        const manager = sim.manager(); // TODO: should be prosumer
         if (percent == 100) {
-          return manager.turnProductionOn().currentState();
+          return sim.prosumer(id).turnProductionOn().currentState();
         } else if (percent == 0) {
-          return manager.turnProductionOff().currentState();
+          return sim.prosumer(id).turnProductionOff().currentState();
         } else {
-          return manager.currentState();
+          return sim.prosumer(id).currentState();
         }
       },
 

@@ -84,8 +84,15 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
 
   let bought = 0;
   let sold = 0;
+  let id = 0;
 
   const obj = {
+
+    // FIXME: deprecated. ID should almost certainly be set at instantiation time.
+    setId(newID) {
+      id = newID;
+      return this;
+    },
 
     // --- Prosumer (client) specific (not in Manager) ---
 
@@ -223,6 +230,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     // TODO: deprecated? Add some sort of currentState method that returns all properties.
     currentState() {
       return {
+        id,
         powerConsumption: currentConsumption,
         powerProduction: currentProduction,
         blackout,
@@ -234,7 +242,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
         },
         chargeRatio,
         dischargeRatio,
-        productionStatus: 100,  // XXX: always on for now
+        productionStatus: 100,  // XXX: always on for now. Could use power production for this.
       };
     }
 

@@ -72,8 +72,16 @@ function Manager(model, state=getDefaultState(), args) {
   let controller = getArgOrDefault(model, 'controller', () => defaultController);
   let desiredState = undefined;
   let chargeRatio = 0.5;
+  let id = -1;
 
   const obj = {
+
+    // FIXME: deprecated. ID should almost certainly be set at instantiation time.
+    setId(newID) {
+      id = newID;
+      return this;
+    },
+
     // --- Manager specific (not in prosumer/client) ---
     currentPrice() { return currentPrice; },
 
@@ -182,6 +190,7 @@ function Manager(model, state=getDefaultState(), args) {
     currentState() {
       const manager = this;
       return {
+        id,
         powerConsumption: manager.currentPowerConsumption(),
         powerProduction: manager.currentPowerProduction(),
         battery: {
