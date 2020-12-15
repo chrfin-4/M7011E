@@ -141,9 +141,10 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
     const state = currentGlobalState();
     const { supply, demand } = getTotalSupplyAndDemand(state);
     marketDemand = demand - supply;
-    manager.updateState({ ...state, demand: marketDemand });
+    manager.startUpdate({ ...state, demand: marketDemand });
     const managerSupply = manager.offeringToGrid();
     const { bought, sold } = performExchange(supply+managerSupply, demand);
+    manager.finishUpdate();
     assert(bought >= 0);
     assert(sold >= 0);
     assert(Math.round(bought) == Math.round(sold));
