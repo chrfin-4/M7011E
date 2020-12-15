@@ -55,7 +55,7 @@ function getResolvers(sim) {
       // Should work with any prosumer in the future, and then ID is required.
       setProductionLevel(_, {id, percent}) {
         const manager = sim.manager(); // TODO: should be prosumer
-        if (percent == 0) {
+        if (percent == 100) {
           return manager.turnProductionOn().currentState();
         } else if (percent == 0) {
           return manager.turnProductionOff().currentState();
