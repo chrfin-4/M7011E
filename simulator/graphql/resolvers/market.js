@@ -5,5 +5,5 @@ const sim = model.simulation;
 module.exports = {
   marketDemand: () => sim.currentMarketDemand(),
   currentPrice: () => sim.currentElectricityPrice(),
-  modelledPrice: () => sim.modelledElectricityPrice(),
+  modeledPrice: () => sim.modelledElectricityPrice(),
 }

@@ -3,16 +3,13 @@ const model = require('../../model');
 const sim = model.simulation;
 
 module.exports = {
-  // XXX: takes and ID even though there currently only exists one manager.
-  // Should work with any prosumer in the future, and then ID is required.
   setProductionLevel: (_, { id, percent }) => {
-    const manager = sim.manager(); // TODO: should be prosumer
     if (percent == 100) {
-      return manager.turnProductionOn().currentState();
+      return sim.prosumer(id).turnProductionOn().currentState();
     } else if (percent == 0) {
-      return manager.turnProductionOff().currentState();
+      return sim.prosumer(id).turnProductionOff().currentState();
     } else {
-      return manager.currentState();
+      return sim.prosumer(id).currentState();
     }
   },
 
@@ -20,7 +17,7 @@ module.exports = {
     return resolvers.Mutation.setProductionLevel(null, { id, percent: 100 });
   },
 
-  turnProductionOff: (_, args) => {
+  turnProductionOff(_, {id}) {
     return resolvers.Mutation.setProductionLevel(null, { id, percent: 0 });
   },
 

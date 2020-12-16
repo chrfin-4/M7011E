@@ -23,4 +23,11 @@ module.exports = {
     sim.advanceSimulationBy(interval, steps);
     return sim.currentState();
   },
+
+  // XXX: Starting and stopping is a temporary implementation.
+  setSimulationParameters(_, {interval, speed}) {
+    sim.stopSimulation();
+    sim.startSimulation(interval, speed);
+    return sim.currentState();
+  },
 }
