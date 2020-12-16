@@ -5,16 +5,29 @@ const Powerplant = require('./powerplant.js').Powerplant;
 const util = require('./util.js');
 const assert = util.assert;
 
+const model = require('./model.js');
+
 exports.Prosumer = prosumer.Prosumer;
 exports.prosumer = prosumer;
 exports.Manager = Manager;
 exports.ConsumptionModel = prosumer.ConsumptionModel; // Deprecated
 exports.Sim = Sim;
 
+// TODO: Change this when we leave test-stage
+exports.simulation = Sim(makeProsumers());
+
+function makeProsumers(count=100) {
+  let prosumers = {};
+  for (let i = 0; i < count; i++) {
+    prosumers[i] = model.Prosumer();
+  }
+  return prosumers;
+}
+
 /*
  * t0 sets the (real) start time.
- * Speed controls how fast the clock ticks in the simulation.
- * speed=1 => 1 second per second
+ * The timeFactor controls how fast the clock ticks in the simulation.
+ * timeFactor=1 => 1 second per second
  */
 function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
 
@@ -22,9 +35,6 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
   let consumers;
   let manager = Manager();  // FIXME: either take as parameter or make sure to use appropriate args here
   let marketDemand;
-  // FIXME: manager should probably have its own power plant?
-  // Should also be a parameter.
-  let powerPlant = Powerplant(1e9, 30_000);
   let blackout = false; // At least one home is not getting its demands met.
 
   let simTime = util.toMilliseconds(t0);
@@ -33,7 +43,8 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
   let updateInterval;
   let timeoutToken;
 
-  function currentState() {
+  // TODO: find a better name?
+  function currentGlobalState() {
     return {
       date: new Date(simTime),
       weather: weatherModel.currentWeather(simTime),
@@ -44,17 +55,19 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
 
   const obj = {
     prosumer(id) {
+      if (id == -1) {
+        return manager;
+      }
       return prosumers[id];
     },
     // --- Model stuff. ---
     prosumerState(id) {
-      return prosumers[id].currentState();
+      return this.prosumer(id).currentState();
     },
     prosumerStates() {
       const arr = [];
       for (let id in prosumers) {
         state = prosumers[id].currentState();
-        state.id = id;  // XXX: Prosumers should probably have their IDs.
         arr.push(state);
       }
       return arr;
@@ -79,8 +92,9 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
 
     simulationTime() { return simTime; },
     isRunning() { return running; },
+    simulationSpeed() { return timeFactor; },
+    updateInterval() { return updateInterval; },
 
-  // FIXME: use clearTimeout when stopping
     stopSimulation() {
       assert(running);  // TODO: necessary/useful?
       running = false;
@@ -108,9 +122,9 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
       this.advanceSimulationBy(interval, steps);
     },
 
-    // TODO: speed should be settable here?
-    /* Interval controls how often the simulation is updated.
+    /* The interval controls how often the simulation is updated.
      * (In real time, not simulation time.)
+     * The timeFactor controls how fast the simulation clock ticks.
      */
     startSimulation(interval=500, speed=timeFactor) {
       assert(!running);  // can only start once
@@ -125,6 +139,9 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
         time: simTime,
         startTime: t0,
         duration: simTime - t0,
+        updateInterval,
+        speed: timeFactor,
+        running,
         prosumers: prosumers.length, // XXX: adding 1 for the manager??
       };
     },
@@ -137,14 +154,18 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
   }
 
   function doUpdate() {
-    // TODO: add manager/plant production
     // TODO: should the manager simply be one of the prosumers??
     weather = weatherModel.currentWeather(simTime);
-    const state = currentState();
-    updatePowerPlant();
-    marketDemand = getTotalNetDemand(state);
-    let supply = -marketDemand;
-    supply = satisfyDemand(supply);
+    const state = currentGlobalState();
+    const { supply, demand } = getTotalSupplyAndDemand(state);
+    marketDemand = demand - supply;
+    manager.startUpdate({ ...state, demand: marketDemand });
+    const managerSupply = manager.offeringToGrid();
+    const { bought, sold } = performExchange(supply+managerSupply, demand);
+    manager.finishUpdate();
+    assert(bought >= 0);
+    assert(sold >= 0);
+    assert(Math.round(bought) == Math.round(sold));
   }
 
   function loop() {
@@ -160,40 +181,58 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
     timeoutToken = setTimeout(() => inner(), updateInterval);
   }
 
-  // FIXME: not complete
-  // TODO: note: pooling all production into a big pot probably doesn't work.
-  // After all, if the power plant uses its own power to charge its batteries,
-  // it's not buying it from anyone.
-  // But if everyone buys and sells at the same price, does it matter?
-  /* Return the net demand placed on the grid, summed over all prosumers. */
-  function getTotalNetDemand(state) {
-    let sum = 0;
+  function getTotalSupplyAndDemand(state) {
+    let supply = 0;
+    let demand = 0;
     for (id in prosumers) {
       const prosumer = prosumers[id];
       prosumer.startUpdate(state);
-      sum += prosumer.netDemand();
+      if (!prosumer.isBanned()) {
+        supply += prosumer.offeringToGrid();
+      }
+      demand += prosumer.demandingFromGrid();
     }
-    return sum;
+    return {supply, demand};
   }
 
-  // FIXME: not complete
-  /* Distribute the supply among the prosumers that demand electricity. */
-  function satisfyDemand(supply) {
+  function performExchange(supply, demand) {
+    let sold = 0;
+    let bought = 0;
     for (id in prosumers) {
       const prosumer = prosumers[id];
-      const demand = prosumer.demandingFromGrid();
-      if (demand > 0 && demand <= supply) {
-        prosumer.buyFromGrid(demand);
-        supply -= demand;
+      // Sell to consumers.
+      if (demand > 0) {
+        const demanding = prosumer.demandingFromGrid();
+        if (supply > 0 && demanding > 0) {
+          const fractionOfTotalDemand = demanding / demand;
+          const sell = Math.min(demanding, fractionOfTotalDemand * supply);
+          prosumer.buyFromGrid(sell);
+          sold += sell;
+        }
+      }
+      // Buy from producers.
+      if (supply > 0) {
+        const offering = prosumer.offeringToGrid();
+        const fractionOfTotalSupply = offering / supply;
+        const buy = Math.min(offering, fractionOfTotalSupply * demand);
+        if (demand > 0 && offering > 0) {
+          if (!prosumer.isBanned()) {
+            prosumer.sellToGrid(buy);
+            bought += buy;
+          }
+        }
       }
       prosumer.finishUpdate();
     }
-    return supply;
-  }
-
-  // XXX: this should happen when manager is updated
-  function updatePowerPlant() {
-    powerPlant.setTime(simTime);
+    // Do (almost) the same with the manager.
+    const offering = manager.offeringToGrid();
+    const fractionOfTotalSupply = offering / supply;
+    const buy = Math.min(offering, fractionOfTotalSupply * demand);
+    if (buy > 0) {
+      manager.sellToGrid(buy);
+      bought += buy;
+    }
+    return { bought, sold };
   }
 
   return obj;

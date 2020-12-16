@@ -1,22 +1,4 @@
-const path = require('path');
-const fs = require('fs');
-const { ApolloServer } = require('apollo-server');
-
-exports.getApi = getApi;
-
-function getApi(sim) {
-  return new ApolloServer({
-    typeDefs: getTypeDefs(),
-    resolvers: getResolvers(sim),
-    resolverValidationOptions: {
-      requireResolversForResolveType: false
-    },
-  });
-}
-
-function getTypeDefs() {
-  return fs.readFileSync(path.join(__dirname, 'schema.graphql'), 'utf-8');
-}
+module.exports = getResolvers;
 
 function getResolvers(sim) {
   const resolvers = {
@@ -27,14 +9,11 @@ function getResolvers(sim) {
       weather: () => sim.currentWeather(),
       marketDemand: () => sim.currentMarketDemand(),
       currentPrice: () => sim.currentElectricityPrice(),
-      modelledPrice: () => sim.modelledElectricityPrice(),
+      modeledPrice: () => sim.modelledElectricityPrice(),
       simulation: () => sim.currentState(),
     },
 
     Mutation: {
-      // XXX: Setting charge/discharge ratio currently only works with
-      // prosumers. Should eventually be extended to also work on the
-      // manager(s).
       setChargeRatio(_, {id, ratio}) {
         try {
           return sim.prosumer(id).setChargeRatio(ratio).currentState();
@@ -51,16 +30,13 @@ function getResolvers(sim) {
         }
       },
 
-      // XXX: takes and ID even though there currently only exists one manager.
-      // Should work with any prosumer in the future, and then ID is required.
       setProductionLevel(_, {id, percent}) {
-        const manager = sim.manager(); // TODO: should be prosumer
-        if (percent == 0) {
-          return manager.turnProductionOn().currentState();
+        if (percent == 100) {
+          return sim.prosumer(id).turnProductionOn().currentState();
         } else if (percent == 0) {
-          return manager.turnProductionOff().currentState();
+          return sim.prosumer(id).turnProductionOff().currentState();
         } else {
-          return manager.currentState();
+          return sim.prosumer(id).currentState();
         }
       },
 
@@ -68,7 +44,7 @@ function getResolvers(sim) {
         return resolvers.Mutation.setProductionLevel(null, {id, percent: 100});
       },
 
-      turnProductionOff(_, args) {
+      turnProductionOff(_, {id}) {
         return resolvers.Mutation.setProductionLevel(null, {id, percent: 0});
       },
 
@@ -97,6 +73,14 @@ function getResolvers(sim) {
         sim.advanceSimulationBy(interval, steps);
         return sim.currentState();
       },
+
+      // XXX: Starting and stopping is a temporary implementation.
+      setSimulationParameters(_, {interval, speed}) {
+        sim.stopSimulation();
+        sim.startSimulation(interval, speed);
+        return sim.currentState();
+      },
+
     },
 
   };

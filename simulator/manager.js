@@ -57,26 +57,39 @@ function Manager(model, state=getDefaultState(), args) {
   const battery = Battery(batteryCap, batteryCharge);
   const plant = Powerplant(productionCap, 30_000);
 
-  let currentPrice = 0.25;
-  let production = 0; // TODO: make depend on initial state (plant on/off)
-  let currentWastedProduction = 0;
-  let currentUnderProduction = 0;
-  let totalWastedProduction = 0;
-  let totalUnderProduction = 0;
+  let currentPrice = 0.25;  // TODO: get from state update
+  let currentProduction = 0; // TODO: make depend on initial state (plant on/off)
+  let offering = 0;
   // These are set from the outside by state updates.
-  let demand = 0;
+  let marketDemand = 0;
   let currentTime = state.date.getTime(); // current time in ms
   let timeDiff = 0;
   // These can be manually/explicitly set from the outside.
   // TODO: extract from model like this or use model.controller(...) ???
   let controller = getArgOrDefault(model, 'controller', () => defaultController);
   let desiredState = undefined;
+  let chargeRatio = 0.5;
+  let id = -1;
+  let sold = 0; // Do we also want a "bought"? Can managers buy?
 
   const obj = {
+
+    // FIXME: deprecated. ID should almost certainly be set at instantiation time.
+    setId(newID) {
+      id = newID;
+      return this;
+    },
+
     // --- Manager specific (not in prosumer/client) ---
     currentPrice() { return currentPrice; },
 
     // --- Common to all prosumers ---
+
+    setChargeRatio(ratio) {
+      assert(ratio >= 0 && ratio <= 1);
+      chargeRatio = ratio;
+      return this;
+    },
 
     currentPowerProduction() { return plant.currentPowerProduction(); },
     // FIXME: how is the power consumption determined?
@@ -89,7 +102,7 @@ function Manager(model, state=getDefaultState(), args) {
     productionStatus() { return productionStatus; },  // TODO: Deprecated
     powerFailure() { return currentUnderProduction > 0; },  // XXX
     nextPlantTransition() { return plant.transitionPoint(); },  // TODO: Deprecated
-    currentPowerDemand() { return demand; },  // XXX
+    currentPowerDemand() { return marketDemand; },  // XXX
 
     productionIsTurningOn() { return plant.isTurningOn(); },
     productionIsTurningOff() { return plant.isTurningOff(); },
@@ -100,25 +113,26 @@ function Manager(model, state=getDefaultState(), args) {
      * Always non-negative.
      */
     offeringToGrid() {
-      return this.currentPowerConsumption() * timeDiff;
+      return offering;
     },
 
     /* How much electricity (Ws) the prosumer wants to buy.
      * Always non-negative.
      */
     demandingFromGrid() {
-      return Math.max(0, this.netDemand());
+      return 0; // XXX: is this correct? Can a manager buy from the grid?
+    },
+
+    // FIXME: how does this differ from a client prosumer? Does it even make sense to have here?
+    netDemand() {
+      return -this.offeringToGrid();
     },
 
     /* Receive this much electricity (Ws) FROM the prosumer. */
     sellToGrid(Ws) {
-      assert(updating);
       assert(Ws >= 0);      // Must always be positive.
-      assert(netDemand <= 0);  // Can only sell something if surplus.
-      assert((sold + Ws) <= -netDemand); // Cannot sell more than offered.
-      assert(!this.isBanned()); // Cannot sell if banned.
-      netDemand += Ws;
-      totalSold += Ws;
+      assert(Ws == 0 || offering > 0);
+      assert(sold + Ws <= offering);
       sold += Ws;
     },
 
@@ -145,29 +159,55 @@ function Manager(model, state=getDefaultState(), args) {
       return this;
     },
 
-    updateState(state) {
+    startUpdate(state) {
       setClock(state.date);
-      const demand = state.demand;
       plant.setTime(currentTime);
-      updateBalance(timeDiff, demand);
+      marketDemand = state.demand;
+
+      // TODO: move
+      currentProduction = this.currentPowerProduction() * timeDiff / 1000;  // Ws
+      if (this.productionIsOff()) {
+        offering = this.batteryCharge();  // use production XOR battery
+      } else {
+        const chargeCap = battery.remainingCapacity();
+        const charge = Math.min(currentProduction * chargeRatio, chargeCap);
+        offering = currentProduction - charge;
+      }
+      return this;
+    },
+
+    finishUpdate(state) {
+      // TODO: Update battery.
+      const surplus = currentProduction - sold;
+      battery.addDiffToLimit(surplus);  // Store surplus/dicharge deficit.
       // Update production status last.
       updateProductionState();
+      sold = 0;
+      offering = 0;
+      currentProduction = 0;
       enforceInvariants();
       return this;
+    },
+
+    // FIXME: Deprecated. Use startUpdate and finishUpdate instead.
+    updateState(state) {
+      this.startUpdate(state);
+      return this.finishUpdate(state);
     },
 
     currentState() {
       const manager = this;
       return {
+        id,
         powerConsumption: manager.currentPowerConsumption(),
         powerProduction: manager.currentPowerProduction(),
         battery: {
           charge: battery.currentCharge(),
           capacity: battery.capacity(),
         },
-        // TODO: try to capture transition here??
-        // Or add an extra field for that?
+        chargeRatio,
         productionStatus: (manager.productionIsOn() ? 100 : 0),
+        nextProductionTransition: plant.transitionPoint(),
       };
     }
 
@@ -194,32 +234,6 @@ function Manager(model, state=getDefaultState(), args) {
         plant.turnOff();
       }
     }
-  }
-
-  // FIXME: this needs to happen at the end of update, after buying/selling
-
-  // Updates battery charge and (current and total) wasted/under production.
-  function updateBalance(duration, demand) {
-    const h = duration/(3600*1000); // convert ms to h
-    const producedWh = production * h;
-    const demandWh = demand * h;
-    const surplus = producedWh - demandWh;
-    const chargeCap = batteryCap - batteryCharge;
-    if (surplus < 0) {
-      const deficit = -surplus;
-      currentUnderProduction = forceNonNegative(deficit - batteryCharge);
-      currentWastedProduction = 0;
-    } else if (surplus > 0) {
-      currentWastedProduction = forceNonNegative(surplus - chargeCap);
-      currentUnderProduction = 0;
-    } else {
-      currentWastedProduction = 0;
-      currentUnderProduction = 0;
-    }
-    totalWastedProduction += currentWastedProduction;
-    totalUnderProduction += currentUnderProduction;
-    batteryCharge += surplus;
-    batteryCharge = util.forceBetween(batteryCharge, 0, batteryCap);
   }
 
   return obj.updateState(state);

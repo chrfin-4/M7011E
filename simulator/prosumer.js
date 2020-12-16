@@ -1,5 +1,6 @@
 const util = require('./util.js');
 const Battery = require('./battery.js').Battery;
+const WindTurbine = require('./turbine.js').WindTurbine;
 const assert = util.assert;
 const assertIsNumber = util.assertIsNumber;
 const getArgOrDefault = util.getArgOrDefault;
@@ -83,8 +84,15 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
 
   let bought = 0;
   let sold = 0;
+  let id = 0;
 
   const obj = {
+
+    // FIXME: deprecated. ID should almost certainly be set at instantiation time.
+    setId(newID) {
+      id = newID;
+      return this;
+    },
 
     // --- Prosumer (client) specific (not in Manager) ---
 
@@ -186,8 +194,8 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     /* Send this much electricity (Ws) TO the prosumer. */
     buyFromGrid(Ws) {
       assert(updating);
-      assert(Ws >= 0);      // Must always be positive.
-      assert(netDemand >= 0);  // Can only buy something if deficit.
+      assert(Ws >= 0);      // Must always be non-negative.
+      assert(Ws == 0 || netDemand >= 0);  // Can only buy something if deficit.
       assert((bought + Ws) <= netDemand); // Cannot buy more than requested.
       totalBought += Ws;
       bought += Ws;
@@ -197,7 +205,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     sellToGrid(Ws) {
       assert(updating);
       assert(Ws >= 0);      // Must always be positive.
-      assert(netDemand <= 0);  // Can only sell something if surplus.
+      assert(Ws == 0 || netDemand <= 0);  // Can only sell something if surplus.
       assert((sold + Ws) <= -netDemand); // Cannot sell more than offered.
       assert(!this.isBanned()); // Cannot sell if banned.
       netDemand += Ws;
@@ -222,6 +230,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     // TODO: deprecated? Add some sort of currentState method that returns all properties.
     currentState() {
       return {
+        id,
         powerConsumption: currentConsumption,
         powerProduction: currentProduction,
         blackout,
@@ -233,7 +242,7 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
         },
         chargeRatio,
         dischargeRatio,
-        productionStatus: 100,  // XXX: always on for now
+        productionStatus: 100,  // XXX: always on for now. Could use power production for this.
       };
     }
 
@@ -432,9 +441,10 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
 
 // Note: The default model uses randomization.
 function getDefaultModel() {
+  const turbine = WindTurbine();
   return {
     consumption: ConsumptionModel({randomizeMissing:true}),
-    production: () => 200 + normalDistribution()(0, 200),  // FIXME: need an actual production model
+    production: ({weather}) => turbine(weather.windSpeed),
   };
 }
 
