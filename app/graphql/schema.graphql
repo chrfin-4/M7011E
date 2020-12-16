@@ -1,0 +1,56 @@
+type Query {
+  users: [User!]!
+  user(id: ID!): User
+
+  login(email: String!, password: String!): AuthData!
+}
+
+type Mutation {
+  createUser(userInput: UserInput): User
+}
+
+type User {
+  email: String!
+  password: String!
+  type: Int!
+  prosumerData: ProsumerData
+  managerData: ManagerData
+}
+
+type ProsumerData {
+  banned: Boolean!
+  houseId: Int!
+}
+
+type ManagerData {
+  powerplants: [Powerplant!]
+}
+
+type AuthData {
+  userId: ID!
+  token: String!
+  tokenExpiration: Int!
+}
+
+type Powerplant {
+  powerplantId: String!
+  name: String!
+}
+
+input UserInput {
+  email: String!
+  password: String!
+  type: String!
+  prosumerData: ProsumerInput
+  managerData: PowerplantInput
+}
+
+input ProsumerInput {
+  banned: Boolean
+  houseId: Int!
+}
+
+input PowerplantInput {
+  powerplandId: String!
+  name: String!
+}

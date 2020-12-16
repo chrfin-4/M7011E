@@ -5,11 +5,24 @@ const Powerplant = require('./powerplant.js').Powerplant;
 const util = require('./util.js');
 const assert = util.assert;
 
+const model = require('./model.js');
+
 exports.Prosumer = prosumer.Prosumer;
 exports.prosumer = prosumer;
 exports.Manager = Manager;
 exports.ConsumptionModel = prosumer.ConsumptionModel; // Deprecated
 exports.Sim = Sim;
+
+// TODO: Change this when we leave test-stage
+exports.simulation = Sim(makeProsumers());
+
+function makeProsumers(count=100) {
+  let prosumers = {};
+  for (let i = 0; i < count; i++) {
+    prosumers[i] = model.Prosumer();
+  }
+  return prosumers;
+}
 
 /*
  * t0 sets the (real) start time.
