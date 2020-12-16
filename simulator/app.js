@@ -4,12 +4,11 @@ const { loadSchemaSync, GraphQLFileLoader } = require('graphql-tools');
 const graphQlResolvers = require('./graphql/resolvers/index')
 const mongoose = require('mongoose');
 const model = require('./model.js');
-const api = require('./api.js');
 const { join } = require('path');
 
 const app = express();
 
-const port = 8080;
+const port = 8081;
 
 // --- Initialize the simulation ---
 

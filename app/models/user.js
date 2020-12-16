@@ -16,8 +16,6 @@ const userSchema = new Schema({
     required: true
   },
   consumerData: {
-    type: [
-    ],
     required: false
   },
   prosumerData: {
@@ -27,11 +25,23 @@ const userSchema = new Schema({
     },
     houseId: {
       type: Number,
-      required: true
+      required: true,
+      unique: true
     }
   },
   managerData: {
-    
+    powerplants: [
+      {
+        powerplantId: {
+          type: String,
+          required: true
+        },
+        name: {
+          type: String,
+          required: true
+        }
+      }
+    ]
   }
 });
 

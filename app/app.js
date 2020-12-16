@@ -1,60 +1,77 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const { graphqlHTTP } = require('express-graphql');
-const { loadSchemaSync, addResolversToSchema, GraphQLFileLoader } = require('graphql-tools');
-const graphQlResolvers = require('./graphql/resolvers/index')
+const { loadSchemaSync, addResolversToSchema, GraphQLFileLoader, introspectSchema, makeExecutableSchema, stitchSchemas, getSubschema } = require('graphql-tools');
+const graphQlResolvers = require('./graphql/resolvers/index');
 const mongoose = require('mongoose');
-const model = require('./model.js');
-const api = require('./api.js');
 const { join } = require('path');
+const { fetch } = require('cross-fetch');
+const { print } = require('graphql');
 
 const app = express();
 
 const port = 8080;
 
-// --- Initialize the simulation ---
+async function setup() {
+  // Load schema from the file
+  const graphQlSchema = loadSchemaSync(join(__dirname, './graphql/schema.graphql'), {
+    loaders: [
+      new GraphQLFileLoader(),
+    ]
+  });
 
-model.simulation.startSimulation(1000);  // update each second
 
-// Load schema from the file
-const graphQlSchema = loadSchemaSync(join(__dirname, './graphql/schema.graphql'), {
-  loaders: [
-    new GraphQLFileLoader(),
-  ]
-});
-
-// Add resolvers to the schema
-/*
-const schemaWithResolvers = addResolversToSchema({
-    graphQlSchema,
-    graphQlResolvers,
-});
-*/
-
-app.use(bodyParser.json());
-
-app.use(
-  '/graphql',
-  graphqlHTTP({
+  let localSchema = addResolversToSchema({
     schema: graphQlSchema,
-    rootValue: graphQlResolvers,
-    graphiql: true
-  })
-);
+    resolvers: graphQlResolvers
+  });
 
-// ==== Start server ====
+  async function simExecutor({ document, variables }) {
+    const query = print(document);
+    const fetchResult = await fetch(process.env.SIM_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables }),
+    });
+    return fetchResult.json();
+  }
 
-mongoose.connect(
-  `${process.env.MONGO_CONNECTION}`
-  /*
-  `mongodb+srv://${process.env.MONGO_USER}:${
-    process.env.MONGO_PASSWORD
-  }@cluster0.zaaoj.mongodb.net/${process.env.MONGO_DB}?retryWrites=true&w=majority`
-  */
-)
-.then(() => {
-  app.listen(port);
-})
-.catch(err => {
-  console.log(err);
-});
+  const simSubschema = {
+    schema: await introspectSchema(simExecutor),
+    executor: simExecutor,
+    // subscriber: remoteSubscriber
+  };
+
+  const localSubschema = { schema: localSchema };
+
+  const gatewaySchema = stitchSchemas({
+    subschemas: [
+      localSubschema,
+      simSubschema,
+    ]
+  });
+
+  app.use(bodyParser.json());
+
+  app.use(
+    '/graphql',
+    graphqlHTTP({
+      schema: gatewaySchema,
+      graphiql: true
+    })
+  );
+
+  // ==== Start server ====
+
+  mongoose.connect(
+    `${process.env.MONGO_CONNECTION}`
+  )
+    .then(() => {
+      app.listen(port);
+    })
+    .catch(err => {
+      console.log(err);
+    });
+}
+
+setup();
