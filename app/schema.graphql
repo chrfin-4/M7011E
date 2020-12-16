@@ -39,6 +39,7 @@ type Prosumer {
   banDuration: Int
   blackout: Boolean!
   productionStatus: Int!
+  nextProductionTransition: Float  # Int is too small
   battery: Battery
 }
 

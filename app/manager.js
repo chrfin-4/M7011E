@@ -206,9 +206,8 @@ function Manager(model, state=getDefaultState(), args) {
           capacity: battery.capacity(),
         },
         chargeRatio,
-        // TODO: try to capture transition here??
-        // Or add an extra field for that?
         productionStatus: (manager.productionIsOn() ? 100 : 0),
+        nextProductionTransition: plant.transitionPoint(),
       };
     }
 
