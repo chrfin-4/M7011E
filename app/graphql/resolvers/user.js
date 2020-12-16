@@ -1,21 +1,26 @@
-const user = require("../../models/user");
+const User = require("../../models/user");
 
 module.exports = {
   Query: {
-    users: (_) => {
-      return 34;
-    },
-    user: (_, id) => {
-      console.log("?");
-      return {
-        email: "test@test.com",
-        password: "123password",
-        type: 2
+    users: async (obj, args, context, info) => {
+      if (!context.isAuth) {
+        throw new Error('Unauthorized');
       }
+
+      try {
+        const users = await User.find();
+        return users.map(user => {
+
+        });
+      } catch (err) {
+        throw err;
+      }
+    },
+    user: async (obj, args, context, info) => {
     },
   },
   Mutation: {
-    createUser: (_, user) => {
+    createUser: async (obj, args, context, info) => {
     }
   }
 }

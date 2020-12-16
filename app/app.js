@@ -31,7 +31,9 @@ async function setup() {
     const query = print(document);
     const fetchResult = await fetch(process.env.SIM_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ query, variables }),
     });
     return fetchResult.json();
