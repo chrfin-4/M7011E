@@ -7,9 +7,9 @@ module.exports = {
   Mutation: {
     createUser: async (obj, args, context, info) => {
       //console.log(obj);
-      console.log(args);
-      //console.log(context);
-      //console.log(info);
+      //console.log(args);
+      //console.log(context.isAuth);
+      //console.log(info.isAuth);
       try {
         const existingUser = await User.findOne({ email: args.userInput.email });
         if (existingUser) {
@@ -33,18 +33,22 @@ module.exports = {
     }
   },
   Query: {
-    login: async ({ email, password }) => {
-      const user = await User.findOne({ email: email });
+    login: async (obj, args, context, info) => {
+      //console.log(obj);
+      //console.log(args);
+      //console.log(context.isAuth);
+      //console.log(info.isAuth);
+      const user = await User.findOne({ email: args.email });
       if (!user) {
         throw new Error('User does not exist!');
       }
-      const isEqual = await bcrypt.compare(password, user.password);
+      const isEqual = await bcrypt.compare(args.password, user.password);
       if (!isEqual) {
         throw new Error('Password is incorrect!');
       }
       const token = jwt.sign(
         { userId: user.id, email: user.email },
-        'somesupersecretkey',
+        process.env.CRYPT_KEY,
         {
           expiresIn: '1h'
         }
