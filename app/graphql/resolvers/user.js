@@ -5,10 +5,11 @@ module.exports = {
     users: (_) => {
       return 34;
     },
-    user(_, id) {
+    user: (_, id) => {
+      console.log("?");
       return {
         email: "test@test.com",
-        authkey: "123password",
+        password: "123password",
         type: 2
       }
     },

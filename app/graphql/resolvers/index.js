@@ -1,17 +1,9 @@
-//const marketResolver = require('./market');
-//const weatherResolver = require('./weather');
-//const managerResolver = require('./manager');
-//const prosumerResolver = require('./prosumer');
-//const simulationResolver = require('./simulation');
 const userResolver = require('./user');
+const authResolver = require('./auth');
 
 const rootResolver = {
-  ...userResolver
-  //...marketResolver,
-  //...weatherResolver,
-  //...managerResolver,
-  //...prosumerResolver,
-  //...simulationResolver
+  ...userResolver,
+  ...authResolver
 };
 
 module.exports = rootResolver;

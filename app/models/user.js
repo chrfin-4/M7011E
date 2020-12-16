@@ -7,7 +7,7 @@ const userSchema = new Schema({
     type: String,
     required: true
   },
-  authkey: {
+  password: {
     type: String,
     required: true
   },
@@ -21,13 +21,13 @@ const userSchema = new Schema({
   prosumerData: {
     banned: {
       type: Boolean,
-      required: true
+      default: false
     },
     houseId: {
       type: Number,
-      required: true,
+      required: false,
       unique: true
-    }
+    },
   },
   managerData: {
     powerplants: [

@@ -1,15 +1,17 @@
 type Query {
   users: [User!]!
   user(id: ID!): User
+
+  login(email: String!, password: String!): AuthData!
 }
 
 type Mutation {
-  createUser(email: String!, authkey: String!): User!
+  createUser(userInput: UserInput): User
 }
 
 type User {
   email: String!
-  authkey: String!
+  password: String!
   type: Int!
   prosumerData: ProsumerData
   managerData: ManagerData
@@ -24,6 +26,12 @@ type ManagerData {
   powerplants: [Powerplant!]
 }
 
+type AuthData {
+  userId: ID!
+  token: String!
+  tokenExpiration: Int!
+}
+
 type Powerplant {
   powerplantId: String!
   name: String!
@@ -31,7 +39,7 @@ type Powerplant {
 
 input UserInput {
   email: String!
-  authkey: String!
+  password: String!
   type: String!
   prosumerData: ProsumerInput
   managerData: PowerplantInput

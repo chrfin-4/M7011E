@@ -2,11 +2,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { graphqlHTTP } = require('express-graphql');
 const { loadSchemaSync, addResolversToSchema, GraphQLFileLoader, introspectSchema, makeExecutableSchema, stitchSchemas, getSubschema } = require('graphql-tools');
-const graphQlResolvers = require('./graphql/resolvers/index');
-const mongoose = require('mongoose');
 const { join } = require('path');
 const { fetch } = require('cross-fetch');
 const { print } = require('graphql');
+const mongoose = require('mongoose');
+const graphQlResolvers = require('./graphql/resolvers/index');
+const isAuth = require('./middleware/is-auth');
 
 const app = express();
 
@@ -52,6 +53,18 @@ async function setup() {
   });
 
   app.use(bodyParser.json());
+
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST,GET,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+  
+  app.use(isAuth);
 
   app.use(
     '/graphql',
