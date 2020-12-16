@@ -23,19 +23,23 @@ type Mutation {
   stopSimulation: Simulation!
   advanceBy(interval: Int!, steps: Int): Simulation!
   # Also need a restart or reset?
+  setSimulationParameters(interval: Int, speed: Float): Simulation!
 }
 
 # A discharge ratio makes sense for a manager prosumer as well, since
 # a manager could be able to vary its production between 0 and 100 %,
 # depending on its power generation method.
 
+# TODO: we should probably have separate prosumer and manager types.
+# For now, just make some fields nullable and rely on the client to
+# only request the appropriate subset.
 type Prosumer {
   id: ID!
   powerConsumption: Float!
   powerProduction: Float!
   chargeRatio: Float!
   dischargeRatio: Float!
-  banned: Boolean!
+  banned: Boolean
   banDuration: Int
   blackout: Boolean!
   productionStatus: Int!
@@ -56,5 +60,8 @@ type Simulation {
   time: String!   # simulation time as a string
   startTime: String!
   duration: Int!
+  updateInterval: Int!
+  speed: Float!
+  running: Boolean!
   prosumers: Int!
 }

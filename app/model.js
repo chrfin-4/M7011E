@@ -79,6 +79,8 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
 
     simulationTime() { return simTime; },
     isRunning() { return running; },
+    simulationSpeed() { return timeFactor; },
+    updateInterval() { return updateInterval; },
 
     stopSimulation() {
       assert(running);  // TODO: necessary/useful?
@@ -124,6 +126,9 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
         time: simTime,
         startTime: t0,
         duration: simTime - t0,
+        updateInterval,
+        speed: timeFactor,
+        running,
         prosumers: prosumers.length, // XXX: adding 1 for the manager??
       };
     },
