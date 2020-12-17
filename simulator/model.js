@@ -42,6 +42,7 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
   const electricityPrice = 23.50;  // FIXME: must get updated
   let updateInterval;
   let timeoutToken;
+  const prosumerLocations = generateProsumerPositions(prosumers);
 
   // TODO: find a better name?
   function currentGlobalState() {
@@ -157,7 +158,6 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
 
   function doUpdate() {
     // TODO: should the manager simply be one of the prosumers??
-    weather = weatherModel.currentWeather(simTime);
     const state = currentGlobalState();
     const { supply, demand } = getTotalSupplyAndDemand(state);
     marketDemand = demand - supply;
@@ -197,9 +197,9 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
   function getTotalSupplyAndDemand(state) {
     let supply = 0;
     let demand = 0;
-    for (id in prosumers) {
+    for (let id in prosumers) {
       const prosumer = prosumers[id];
-      prosumer.startUpdate(state);
+      prosumer.startUpdate({...state, weather: localProsumerWeather(id)});
       if (!prosumer.isBanned()) {
         supply += prosumer.offeringToGrid();
       }
@@ -248,5 +248,20 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
     return { bought, sold };
   }
 
+  function localProsumerWeather(id) {
+    const gps = prosumerLocations[id];
+    return weatherModel.currentWeather(simTime, gps);
+  }
+
   return obj;
 };
+
+function generateProsumerPositions(prosumers) {
+  const rng = util.normalDistribution();
+  const positions = {};
+  for (let id in prosumers) {
+    const gps = { lat: 65 + rng(-1, 1), lon: 22 + rng(-1, 1) };
+    positions[id] = gps;
+  }
+  return positions;
+}
