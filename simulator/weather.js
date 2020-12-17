@@ -4,19 +4,42 @@ const rng = util.normalDistribution();
 exports.Weather = Weather;
 
 // GPS coordinates ignored for now.
+// Luleå: 65.5839, 22.1532
+// The average wind speed is 3.27 m/s over the whole year.
+// Average low = 2.76 m/s around June 15th, average high = 3.78 m/s.
 function windSpeed(date, gps) {
-  return rng(0, 10);
+  const t = util.toMilliseconds(date);
+  const { lat, lon } = gps ?? { lat: 65.5839, lon: 22.1532 }
+  const P = 365*24*60*60*1000;  // The period is P = 365 days
+  const b = (2*Math.PI)/P;
+  const peakOffset = 338*24*60*60*1000;  // Peak is december 4th
+  const wind = 0.51 * (1 + Math.cos(b*(t-peakOffset))) + 3.27;
+  // XXX: This is kinda dubious. Not based on any real data.
+  // Temporary way to get prosumers to experience different wind speeds.
+  const personalization = 3*((100*lat-Math.round(100*lat)) + (100*lon-Math.round(100*lon)));
+  return wind + personalization;
 }
 
-function Weather() {
+// TODO: add an arg for controlling the size of fluctuations.
+function Weather({randomize} = {}) {
+  const min = 0;
+  const max = 25;
+  const maxOffset = 10;
+  const minOffset = -10;
+  let currentOffset = randomize ? rng(minOffset, maxOffset) : 0;
   const obj = {
-    windSpeed(time=util.now()) {
-      return windSpeed(time);
+    windSpeed(time=util.now(), gps) {
+      const wind = windSpeed(time, gps);
+      if (randomize) {
+        currentOffset += rng(-0.5, 0.5);
+        currentOffset = util.forceBetween(currentOffset, minOffset, maxOffset);
+      }
+      return util.forceBetween(wind + currentOffset, min, max);
     },
-    currentWeather(time=util.now()) {
+    currentWeather(time=util.now(), gps) {
       return {
         when: time,
-        windSpeed: this.windSpeed(time),
+        windSpeed: this.windSpeed(time, gps),
       };
     },
   };

@@ -29,7 +29,7 @@ function makeProsumers(count=100) {
  * The timeFactor controls how fast the clock ticks in the simulation.
  * timeFactor=1 => 1 second per second
  */
-function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
+function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), timeFactor=1) {
 
   let running = false;
   let consumers;
