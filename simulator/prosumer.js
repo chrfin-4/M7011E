@@ -120,12 +120,14 @@ function Prosumer(model=getDefaultModel(), state=getDefaultState(), args) {
     setChargeRatio(ratio) {
       assert(ratio >= 0 && ratio <= 1);
       overProdPolicy = () => ratio;
+      chargeRatio = ratio;
       return this;
     },
 
     setDischargeRatio(ratio) {
       assert(ratio >= 0 && ratio <= 1);
       underProdPolicy = () => ratio;
+      dischargeRatio = ratio;
       return this;
     },
 
