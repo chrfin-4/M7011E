@@ -5,7 +5,7 @@ const sim = model.simulation;
 // Note: Args are now in parent rather than args.
 module.exports = {
   prosumerStates: () => sim.prosumerStates(),
-  prosumerState: ({ id }) => sim.prosumerState(parent.id),
+  prosumerState: ({ id }) => sim.prosumerState(id),
   setChargeRatio: ({ id, ratio }) => {
     try {
       return sim.prosumer(id).setChargeRatio(ratio).currentState();
