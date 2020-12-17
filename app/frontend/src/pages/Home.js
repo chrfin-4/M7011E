@@ -1,6 +1,9 @@
 const Home = props => {
   return(
-    <div>Home</div>
+    <div>
+      Home
+      {console.log(props)}
+    </div>
   );
 };
 

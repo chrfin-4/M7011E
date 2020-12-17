@@ -9,6 +9,7 @@ import IconButton from '@material-ui/core/IconButton';
 import Badge from '@material-ui/core/Badge';
 import NotificationsIcon from '@material-ui/icons/Notifications';
 import { Link } from 'react-router-dom';
+import { getAccessToken } from '../../Cookies';
 
 const useStyles = makeStyles((theme) => ({
   toolbar: {
@@ -58,12 +59,12 @@ export default function NavBar(props) {
           <Button variant="outlined">
             <Link to="/stats">Statistics</Link>
           </Button>
-          {!props.token && (
+          {!getAccessToken() && (
             <Button href="/signin">
               <Link to="/signin">Sign In</Link>
             </Button>
           )}
-          {props.token && (
+          {getAccessToken() && (
             <Button href="/signin">
               <Link to="/signout">Sign out</Link>
             </Button>

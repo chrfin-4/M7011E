@@ -1,7 +1,16 @@
-const Home = props => {
+import { removeAccessToken } from '../Cookies';
+
+const Signout = ({history}) => {
   return(
-    <div>Signout</div>
+    <div>
+      {
+        removeAccessToken()
+      }
+      {
+        history.push("/")
+      }
+    </div>
   );
 };
 
-export default Home;
+export default Signout;

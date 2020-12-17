@@ -1,0 +1,6 @@
+query Signin {
+  login(email: "test", password: "pass") {
+    userId
+    token
+  }
+}
