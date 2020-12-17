@@ -2,8 +2,9 @@ const model = require('../../model');
 
 const sim = model.simulation;
 
+// Note: Args are now in parent rather than args.
 module.exports = {
-  setProductionLevel: (_, { id, percent }) => {
+  setProductionLevel: ({ id, percent }) => {
     if (percent == 100) {
       return sim.prosumer(id).turnProductionOn().currentState();
     } else if (percent == 0) {
@@ -13,15 +14,15 @@ module.exports = {
     }
   },
 
-  turnProductionOn: (_, { id }) => {
+  turnProductionOn: ({ id }) => {
     return resolvers.Mutation.setProductionLevel(null, { id, percent: 100 });
   },
 
-  turnProductionOff(_, {id}) {
+  turnProductionOff({ id }) {
     return resolvers.Mutation.setProductionLevel(null, { id, percent: 0 });
   },
 
-  banProducer: (_, { id, duration }) => {
+  banProducer: ({ id, duration }) => {
     return sim.prosumer(id).banFor(duration).currentState();
   },
 }
