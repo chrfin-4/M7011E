@@ -38,14 +38,25 @@ module.exports = {
       if (!isEqual) {
         throw new Error('Password is incorrect!');
       }
+
+      context.res.cookie(
+        "tid",
+        jwt.sign({ userId: user.id }, process.env.CRYPT_KEY2, {
+          expiresIn: "7d"
+        }),
+        {
+          httpOnly: true
+        }
+      );
+
       const token = jwt.sign(
-        { userId: user.id, email: user.email },
+        { userId: user.id },
         process.env.CRYPT_KEY,
         {
           expiresIn: '1h'
         }
       );
-      return { userId: user.id, token: token, tokenExpiration: 1 };
+      return { userId: user.id, token: token, tokenExpiration: 1};
     }
   }
 };
