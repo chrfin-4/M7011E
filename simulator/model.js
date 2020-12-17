@@ -94,6 +94,7 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
     isRunning() { return running; },
     simulationSpeed() { return timeFactor; },
     updateInterval() { return updateInterval; },
+    blackout() { return blackout; },
 
     stopSimulation() {
       assert(running);  // TODO: necessary/useful?
@@ -143,6 +144,7 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
         speed: timeFactor,
         running,
         prosumers: prosumers.length, // XXX: adding 1 for the manager??
+        blackout,
       };
     },
 
@@ -163,9 +165,20 @@ function Sim(prosumers, weatherModel=Weather(), t0=util.now(), timeFactor=1) {
     const managerSupply = manager.offeringToGrid();
     const { bought, sold } = performExchange(supply+managerSupply, demand);
     manager.finishUpdate();
+    updateBlackout();
     assert(bought >= 0);
     assert(sold >= 0);
     assert(Math.round(bought) == Math.round(sold));
+  }
+
+  function updateBlackout() {
+    blackout = false;
+    for (id in prosumers) {
+      if (prosumers[id].isBlackedOut()) {
+        blackout = true;
+        break;
+      }
+    }
   }
 
   function loop() {

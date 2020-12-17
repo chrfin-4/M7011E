@@ -1,4 +1,5 @@
 const Sim = require('../model.js').Sim;
+const Prosumer = require('../prosumer.js').Prosumer;
 const util = require('../util.js');
 const now = util.now;
 const seconds = util.fromSeconds;
@@ -159,6 +160,30 @@ describe("restarting simulation", function() {
     sim.startSimulation(1000);  // Start again (scheduling an update 1 second from now)
     jasmine.clock().tick(1000); // Advancing time 1 second.
     expect(sim.simulationTime() - t0).toBe(seconds(2)); // Two 1 second updates should have happened.
+  });
+
+});
+
+describe("blackout", function() {
+  it("should be true if at least one prosumer is experiencing blackout", function() {
+    const prosumer1 = Prosumer({consumption: () => 0, production: () => 0});
+    const prosumer2 = Prosumer({consumption: () => 1, production: () => 0});
+    const sim = Sim({1: prosumer1, 2: prosumer2});
+    expect(prosumer1.isBlackedOut()).toBe(false);
+    expect(prosumer2.isBlackedOut()).toBe(false);
+    expect(sim.blackout()).toBe(false);
+    sim.advanceSimulationBy(1);
+    expect(prosumer1.isBlackedOut()).toBe(false);
+    expect(prosumer2.isBlackedOut()).toBe(true);
+    expect(sim.blackout()).toBe(true);
+  });
+
+  it("should be false if at no prosumer is experiencing blackout", function() {
+    const prosumer1 = Prosumer({consumption: () => 0, production: () => 0});
+    const prosumer2 = Prosumer({consumption: () => 0, production: () => 0});
+    const sim = Sim({1: prosumer1, 2: prosumer2});
+    sim.advanceSimulationBy(1);
+    expect(sim.blackout()).toBe(false);
   });
 
 });
