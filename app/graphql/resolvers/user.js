@@ -1,26 +1,20 @@
 const User = require("../../models/user");
 
+function assertIsAuth(context) {
+  if (!context.isAuth) {
+    throw new Error('Unauthorized');
+  }
+}
+
 module.exports = {
   Query: {
-    users: async (obj, args, context, info) => {
-      if (!context.isAuth) {
-        throw new Error('Unauthorized');
-      }
-
-      try {
-        const users = await User.find();
-        return users.map(user => {
-
-        });
-      } catch (err) {
-        throw err;
-      }
+    users: async (_, args, context) => {
+      assertIsAuth(context);
+      return await User.find();
     },
-    user: async (obj, args, context, info) => {
+    user: async (_, {id}, context) => {
+      assertIsAuth(context);
+      return await User.findById(id);
     },
   },
-  Mutation: {
-    createUser: async (obj, args, context, info) => {
-    }
-  }
 }

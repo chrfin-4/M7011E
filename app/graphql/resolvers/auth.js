@@ -6,10 +6,6 @@ const User = require('../../models/user');
 module.exports = {
   Mutation: {
     createUser: async (obj, args, context, info) => {
-      //console.log(obj);
-      //console.log(args);
-      //console.log(context.isAuth);
-      //console.log(info.isAuth);
       try {
         const existingUser = await User.findOne({ email: args.userInput.email });
         if (existingUser) {
@@ -34,10 +30,6 @@ module.exports = {
   },
   Query: {
     login: async (obj, args, context, info) => {
-      //console.log(obj);
-      //console.log(args);
-      //console.log(context.isAuth);
-      //console.log(info.isAuth);
       const user = await User.findOne({ email: args.email });
       if (!user) {
         throw new Error('User does not exist!');
