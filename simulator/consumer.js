@@ -1,4 +1,5 @@
 const Prosumer = require('./prosumer.js').Prosumer;
+const ConsumptionModel = require('./consumption.js').ConsumptionModel;
 
 exports.Consumer = Consumer;
 

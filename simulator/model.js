@@ -2,6 +2,7 @@ const prosumer = require('./prosumer.js');
 const Manager = require('./manager.js').Manager;
 const Weather = require('./weather.js').Weather;
 const Powerplant = require('./powerplant.js').Powerplant;
+const Consumer = require('./consumer.js').Consumer;
 const util = require('./util.js');
 const assert = util.assert;
 
@@ -16,10 +17,13 @@ exports.Sim = Sim;
 // TODO: Change this when we leave test-stage
 exports.simulation = Sim(makeProsumers());
 
-function makeProsumers(count=100) {
+function makeProsumers(count=50) {
   let prosumers = {};
   for (let i = 0; i < count; i++) {
     prosumers[i] = model.Prosumer().setId(i);
+  }
+  for (let i = count; i < count*3; i++) {
+    prosumers[i] = Consumer({}).setId(i);
   }
   return prosumers;
 }
