@@ -5,7 +5,7 @@ const User = require('../../models/user');
 
 module.exports = {
   Mutation: {
-    createUser: async (obj, args, context, info) => {
+    createUser: async (parent, args, context, info) => {
       console.log(args.userInput);
       try {
         const existingUser = await User.findOne({ email: args.userInput.email });
@@ -22,6 +22,8 @@ module.exports = {
 
         const result = await user.save();
 
+        context.req.session.userId = user.id;
+
         return { ...result._doc, password: null, _id: result.id };
       } catch (err) {
         console.log(err);
@@ -30,7 +32,7 @@ module.exports = {
     }
   },
   Query: {
-    login: async (obj, args, context, info) => {
+    login: async (parent, args, context, info) => {
       const user = await User.findOne({ email: args.email });
       if (!user) {
         throw new Error('User does not exist!');
@@ -40,23 +42,11 @@ module.exports = {
         throw new Error('Password is incorrect!');
       }
 
-      context.res.cookie(
-        "tid",
-        jwt.sign({ userId: user.id }, process.env.CRYPT_KEY2, {
-          expiresIn: "7d"
-        }),
-        {
-          httpOnly: true
-        }
-      );
+      // store user id session
+      // this will set a cookie on the user
+      // keep them logged in
+      context.req.session.userId = user.id;
 
-      const token = jwt.sign(
-        { userId: user.id },
-        process.env.CRYPT_KEY,
-        {
-          expiresIn: '1h'
-        }
-      );
       return { userId: user.id, token: token, tokenExpiration: 1};
     }
   }

@@ -1,7 +1,7 @@
 const User = require("../../models/user");
 
 function assertIsAuth(context) {
-  if (!context.isAuth) {
+  if (!context.req.session.userId) {
     throw new Error('Unauthorized');
   }
 }
