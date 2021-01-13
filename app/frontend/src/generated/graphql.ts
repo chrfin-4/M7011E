@@ -1,8 +1,5 @@
-import { GraphQLClient } from 'graphql-request';
-import { print } from 'graphql';
-import { GraphQLError } from 'graphql-request/dist/types';
-import { Headers } from 'graphql-request/dist/types.dom';
-import gql from 'graphql-tag';
+import { gql } from '@apollo/client';
+import * as Apollo from '@apollo/client';
 export type Maybe<T> = T | null;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
@@ -120,8 +117,9 @@ export type MutationSetSimulationParametersArgs = {
 
 export type User = {
   __typename?: 'User';
+  _id?: Maybe<Scalars['ID']>;
   email: Scalars['String'];
-  password: Scalars['String'];
+  password?: Maybe<Scalars['String']>;
   type: Scalars['Int'];
   prosumerData?: Maybe<ProsumerData>;
   managerData?: Maybe<ManagerData>;
@@ -227,15 +225,27 @@ export const SigninDocument = gql`
 }
     `;
 
-export type SdkFunctionWrapper = <T>(action: () => Promise<T>) => Promise<T>;
-
-
-const defaultWrapper: SdkFunctionWrapper = sdkFunction => sdkFunction();
-export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = defaultWrapper) {
-  return {
-    Signin(variables?: SigninQueryVariables): Promise<{ data?: SigninQuery | undefined; extensions?: any; headers: Headers; status: number; errors?: GraphQLError[] | undefined; }> {
-        return withWrapper(() => client.rawRequest<SigninQuery>(print(SigninDocument), variables));
-    }
-  };
-}
-export type Sdk = ReturnType<typeof getSdk>;
+/**
+ * __useSigninQuery__
+ *
+ * To run a query within a React component, call `useSigninQuery` and pass it any options that fit your needs.
+ * When your component renders, `useSigninQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useSigninQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useSigninQuery(baseOptions?: Apollo.QueryHookOptions<SigninQuery, SigninQueryVariables>) {
+        return Apollo.useQuery<SigninQuery, SigninQueryVariables>(SigninDocument, baseOptions);
+      }
+export function useSigninLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<SigninQuery, SigninQueryVariables>) {
+          return Apollo.useLazyQuery<SigninQuery, SigninQueryVariables>(SigninDocument, baseOptions);
+        }
+export type SigninQueryHookResult = ReturnType<typeof useSigninQuery>;
+export type SigninLazyQueryHookResult = ReturnType<typeof useSigninLazyQuery>;
+export type SigninQueryResult = Apollo.QueryResult<SigninQuery, SigninQueryVariables>;

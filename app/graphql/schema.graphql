@@ -10,8 +10,9 @@ type Mutation {
 }
 
 type User {
+  _id: ID
   email: String!
-  password: String!
+  password: String
   type: Int!
   prosumerData: ProsumerData
   managerData: ManagerData

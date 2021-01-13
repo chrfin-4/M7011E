@@ -1,7 +1,8 @@
 const express = require('express');
-const bodyParser = require('body-parser');
+const { ApolloServer } = require('apollo-server-express');
 const { graphqlHTTP } = require('express-graphql');
-const { loadSchemaSync, addResolversToSchema, GraphQLFileLoader, introspectSchema, makeExecutableSchema, stitchSchemas, getSubschema } = require('graphql-tools');
+const { loadSchemaSync, addResolversToSchema, GraphQLFileLoader, introspectSchema, stitchSchemas, } = require('graphql-tools');
+const bodyParser = require('body-parser');
 const { join } = require('path');
 const { fetch } = require('cross-fetch');
 const { print } = require('graphql');
@@ -13,7 +14,7 @@ const app = express();
 
 const port = 8080;
 
-async function setup() {
+const main = async () => {
   // Load schema from the file
   const graphQlSchema = loadSchemaSync(join(__dirname, './graphql/schema.graphql'), {
     loaders: [
@@ -68,13 +69,23 @@ async function setup() {
   
   app.use(isAuth);
 
+  const apolloServer = await new ApolloServer({
+    schema: gatewaySchema
+  });
+
+  apolloServer.applyMiddleware({ app });
+
+  /*
   app.use(
     '/graphql',
     graphqlHTTP({
       schema: gatewaySchema,
-      graphiql: true
+      graphiql: {
+        headerEditorEnabled: true
+      }
     })
   );
+  */
 
   // ==== Start server ====
 
@@ -89,4 +100,6 @@ async function setup() {
     });
 }
 
-setup();
+main().catch((err) => {
+  console.log(err);
+});

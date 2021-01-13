@@ -6,6 +6,8 @@ generates:
     plugins:
       - "typescript"
       - "typescript-operations"
-      - "typescript-graphql-request"
+      - "typescript-react-apollo"
     config:
-      rawRequest: true
+      withHOC: false
+      withComponent: false
+      withHooks: true
