@@ -2,25 +2,18 @@ import React, { useState } from 'react';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import { setAccessToken } from '../Cookies';
-import { getSdk } from '../generated/graphql';
+import { useSigninQuery } from '../generated/graphql';
 import { endpointUrl } from '../GraphqlConfig';
 import { GraphQLClient } from 'graphql-request';
 
 const Home = ({ history }) => {
-  const client = new GraphQLClient(endpointUrl, {
-    headers: {
-
-    }
-  });
-  const sdk = getSdk(client);
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   
   return (
     <form onSubmit={async e => {
       e.preventDefault();
-      const response = await sdk.Signin({
+      const response = useSigninQuery({
         variables: {
           email,
           password

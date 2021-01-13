@@ -6,6 +6,7 @@ const User = require('../../models/user');
 module.exports = {
   Mutation: {
     createUser: async (obj, args, context, info) => {
+      console.log(args.userInput);
       try {
         const existingUser = await User.findOne({ email: args.userInput.email });
         if (existingUser) {
