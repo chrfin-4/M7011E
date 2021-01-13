@@ -2,6 +2,9 @@
 *.pem
 *.key
 
+# RedisStore
+*.rdb
+
 # Editor files
 *.swp
 
