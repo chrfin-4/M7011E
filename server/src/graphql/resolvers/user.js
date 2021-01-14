@@ -16,5 +16,11 @@ module.exports = {
       assertIsAuth(context);
       return await User.findById(id);
     },
+    me: async (_, args, context) => {
+      if (!context.req.session.userId) {
+        return null;
+      }
+      return await User.findById(context.req.session.userId);
+    }
   },
 }

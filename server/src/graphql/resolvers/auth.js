@@ -47,7 +47,7 @@ module.exports = {
       // keep them logged in
       context.req.session.userId = user.id;
 
-      return { userId: user.id, token: token, tokenExpiration: 1};
+      return { ...user._doc };
     }
   }
 };
