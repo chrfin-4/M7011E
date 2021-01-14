@@ -3,9 +3,15 @@
   "version": "4.0.0",
   "private": true,
   "dependencies": {
+    "@apollo/client": "^3.3.6",
     "@material-ui/core": "latest",
+    "@material-ui/icons": "^4.11.2",
     "clsx": "latest",
+    "formik": "^2.2.6",
+    "formik-material-ui": "^3.0.1",
+    "graphql": "^15.4.0",
     "next": "latest",
+    "next-apollo": "^5.0.4",
     "prop-types": "latest",
     "react": "latest",
     "react-dom": "latest"
@@ -14,6 +20,12 @@
     "dev": "next",
     "build": "next build",
     "start": "next start",
-    "post-update": "echo \"codesandbox preview only, need an update\" && yarn upgrade --latest"
+    "gen": "SCHEMA='http://localhost:8080/graphql' graphql-codegen --config codegen.yml"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^1.20.0",
+    "@graphql-codegen/typescript": "^1.20.0",
+    "@graphql-codegen/typescript-operations": "^1.17.13",
+    "@graphql-codegen/typescript-react-apollo": "^2.2.1"
   }
 }
