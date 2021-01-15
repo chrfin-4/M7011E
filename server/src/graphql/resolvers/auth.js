@@ -1,16 +1,28 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const { COOKIE_NAME } = require('../../constants');
 
 const User = require('../../models/user');
+const { validateRegister } = require('../../util/validateRegister');
 
 module.exports = {
   Mutation: {
     createUser: async (parent, args, context, info) => {
-      console.log(args.userInput);
       try {
+        const errors = validateRegister(args.userInput);
+        if (errors) {
+          return errors;
+        }
+
         const existingUser = await User.findOne({ email: args.userInput.email });
         if (existingUser) {
-          throw new Error('User exists already.');
+          return {
+            errors: [
+              {
+                field: "email",
+                message: "email already exists"
+              }
+            ]
+          };
         }
         const hashedPassword = await bcrypt.hash(args.userInput.password, 12);
 
@@ -24,22 +36,40 @@ module.exports = {
 
         context.req.session.userId = user.id;
 
-        return { ...result._doc, password: null, _id: result.id };
+        return { 
+          user: {
+            ...result._doc, 
+            password: null, 
+            _id: result.id
+          }
+        };
       } catch (err) {
         console.log(err);
         throw err;
       }
-    }
-  },
-  Query: {
+    },
     login: async (parent, args, context, info) => {
       const user = await User.findOne({ email: args.email });
       if (!user) {
-        throw new Error('User does not exist!');
+        return {
+          errors: [
+            {
+              field: "email",
+              message: "email doesn't exist"
+            }
+          ]
+        };
       }
       const isEqual = await bcrypt.compare(args.password, user.password);
       if (!isEqual) {
-        throw new Error('Password is incorrect!');
+        return {
+          errors: [
+            {
+              field: "password",
+              message: "incorrect password"
+            }
+          ]
+        };
       }
 
       // store user id session
@@ -47,7 +77,26 @@ module.exports = {
       // keep them logged in
       context.req.session.userId = user.id;
 
-      return { ...user._doc };
-    }
+      return {
+        user: {
+          ...user._doc
+        }
+      };
+    },
+    logout: async (parent, args, {req, res}, info) => {
+      return new Promise((resolve) => {
+        req.session.destroy((err) => {
+          res.clearCookie(COOKIE_NAME);
+          if (err) {
+            console.log(err);
+            resolve(false);
+            return;
+          }
+          resolve(true);
+        })
+      })
+    },
+  },
+  Query: {
   }
 };

@@ -1,8 +1,11 @@
 import React from 'react';
 import { Layout } from '../components/Layout';
+import { withApollo } from '../src/utils/withApollo';
 
-export default function Index() {
+const Index = () => {
   return (
     <div>index</div>
   );
 }
+
+export default withApollo({ ssr: true })(Index);

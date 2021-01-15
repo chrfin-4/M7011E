@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const { join } = require('path');
 const { fetch } = require('cross-fetch');
 const { print } = require('graphql');
+const cors = require('cors');
 const mongoose = require('mongoose');
 const graphQlResolvers = require('./graphql/resolvers/index');
 const { RedisClient} = require('redis');
@@ -21,6 +22,12 @@ const main = async () => {
   const redis = new RedisClient(process.env.REDIS_URL);
   app.set("trust proxy", 1);
   app.use(
+    cors({
+      origin: process.env.CORS_ORIGIN,
+      credentials: true,
+    })
+  );
+  app.use(
     session({
       name: COOKIE_NAME,
       store: new RedisStore({
@@ -32,7 +39,7 @@ const main = async () => {
         httpOnly: true,
         sameSite: "lax", // csrf
         secure: __prod__, // cookie only works in https
-        domain: __prod__ ? ".codeponder.com" : undefined,
+        domain: __prod__ ? "exerge.akerstrom.dev" : undefined,
       },
       saveUninitialized: false,
       secret: process.env.CRYPT_KEY,
@@ -40,8 +47,8 @@ const main = async () => {
     })
   );
 
+  /*
   app.use(bodyParser.json());
-
   app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST,GET,OPTIONS');
@@ -51,6 +58,7 @@ const main = async () => {
     }
     next();
   });
+  */
   
   // Load schema from the file
   const graphQlSchema = loadSchemaSync(join(__dirname, './graphql/schema.graphql'), {
@@ -102,6 +110,7 @@ const main = async () => {
 
   apolloServer.applyMiddleware({
     app,
+    cors: false
   });
 
   // ==== Start server ====

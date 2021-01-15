@@ -26,7 +26,14 @@ const userSchema = new Schema({
     houseId: {
       type: Number,
       required: false,
-      unique: true
+      index: {
+        unique: true,
+        partialFilterExpression: {
+          houseId: {
+            $type: Number
+          }
+        }
+      }
     },
   },
   managerData: {
