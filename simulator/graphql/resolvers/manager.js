@@ -25,4 +25,9 @@ module.exports = {
   banProducer: ({ id, duration }) => {
     return sim.prosumer(id).banFor(duration).currentState();
   },
+
+  setElectricityPrice: ({ id, price }) => {
+    return sim.prosumer(id).setPrice(price).currentState();
+  },
+
 }

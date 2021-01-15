@@ -1,6 +1,7 @@
 const util = require('./util.js');
 const Battery = require('./battery.js').Battery;
 const Powerplant = require('./powerplant.js').Powerplant;
+const pricing = require('./pricing.js');
 const rng = util.normalDistribution();
 const assert = util.assert;
 const getArgOrDefault = util.getArgOrDefault;
@@ -8,6 +9,7 @@ const getArgOrDefault = util.getArgOrDefault;
 exports.Manager = Manager;
 exports.nopController = nopController;
 exports.defaultController = defaultController;
+exports.defaultPricingModel = defaultPricingModel();
 
 // TODO: what is a reasonable power generation capacity for a coal plant?
 
@@ -39,6 +41,15 @@ function defaultController(manager, safetyFactor=5) {
   return (capacity < demand * safetyFactor) ? ON : OFF;
 }
 
+function defaultPricingModel() {
+  const initialPrice = 23.5;
+  const slope = 1/1000;
+  const maxPrice = 100;
+  const minPrice = 5;
+  //return pricing.LinearPricingModel({initialPrice, slope, maxPrice, minPrice});
+  return pricing.ConstantPricingModel({initialPrice});
+}
+
 // TODO: Needs a pricing model.
 /*
  * 270,000 Wh corresponds to 20 Powerwalls.
@@ -57,7 +68,6 @@ function Manager(model, state=getDefaultState(), args) {
   const battery = Battery(batteryCap, batteryCharge);
   const plant = Powerplant(productionCap, 30_000);
 
-  let currentPrice = 0.25;  // TODO: get from state update
   let currentProduction = 0; // TODO: make depend on initial state (plant on/off)
   let offering = 0;
   // These are set from the outside by state updates.
@@ -67,6 +77,7 @@ function Manager(model, state=getDefaultState(), args) {
   // These can be manually/explicitly set from the outside.
   // TODO: extract from model like this or use model.controller(...) ???
   let controller = getArgOrDefault(model, 'controller', () => defaultController);
+  let pricingModel = getArgOrDefault(model, 'pricingModel', () => defaultPricingModel());
   let desiredState = undefined;
   let chargeRatio = 0.5;
   let id = -1;
@@ -81,7 +92,13 @@ function Manager(model, state=getDefaultState(), args) {
     },
 
     // --- Manager specific (not in prosumer/client) ---
-    currentPrice() { return currentPrice; },
+    currentPrice() {
+      return pricingModel(marketDemand);
+    },
+    setPrice(price) {
+      pricingModel = pricing.ConstantPricingModel({initialPrice: price});
+      return this;
+    },
 
     // --- Common to all prosumers ---
 
@@ -148,14 +165,6 @@ function Manager(model, state=getDefaultState(), args) {
 
     turnProductionOff() {
       plant.turnOff();
-      return this;
-    },
-
-    // FIXME: no, it does not
-    // TODO: does this even belong here? Or rather place in the simulation outside?
-    // TODO: set immediately or remember until next update?
-    setPrice(price) {
-      currentPrice = price;
       return this;
     },
 
@@ -254,6 +263,7 @@ function ManagerModel() {
 function getDefaultModel() {
   return {
     controller: defaultController,
+    pricingModel: defaultPricingModel(),
   };
 }
 

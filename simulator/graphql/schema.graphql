@@ -17,6 +17,7 @@ type Mutation {
   turnProductionOn(id: ID!): Prosumer!
   turnProductionOff(id: ID!): Prosumer!
   setProductionLevel(id: ID!, percent: Int!): Prosumer!
+  setElectricityPrice(id: ID!, price: Float!): Prosumer!
 
   # Simulation
   startSimulation(interval: Int, speed: Float): Simulation!
