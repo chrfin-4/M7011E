@@ -5,8 +5,9 @@ import { ThemeProvider } from '@material-ui/core/styles';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import theme from '../src/theme';
 import { Layout } from '../components/Layout';
+import { withApollo } from "../src/utils/withApollo";
 
-export default function MyApp(props) {
+const MyApp = (props) => {
   const { Component, pageProps } = props;
 
   React.useEffect(() => {
@@ -38,3 +39,5 @@ MyApp.propTypes = {
   Component: PropTypes.elementType.isRequired,
   pageProps: PropTypes.object.isRequired,
 };
+
+export default withApollo({ ssr: false })(MyApp);

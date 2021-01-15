@@ -2,12 +2,18 @@ type Query {
   users: [User!]!
   user(id: ID!): User
 
-  login(email: String!, password: String!): User
   me: User
 }
 
 type Mutation {
-  createUser(userInput: UserInput): User
+  createUser(userInput: UserInput): UserResponse!
+  login(email: String!, password: String!): UserResponse!
+  logout: Boolean
+}
+
+type FieldError {
+  field: String!
+  message: String!
 }
 
 type User {
@@ -17,6 +23,11 @@ type User {
   type: Int!
   prosumerData: ProsumerData
   managerData: ManagerData
+}
+
+type UserResponse {
+  errors: [FieldError]
+  user: User
 }
 
 type ProsumerData {

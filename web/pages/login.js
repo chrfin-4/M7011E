@@ -1,9 +1,9 @@
-import React from 'react'
+import React from "react";
 import clsx from 'clsx';
 import { Formik, Form, Field } from "formik";
 import { Wrapper } from "../components/Wrapper";
 import { useApolloClient } from '@apollo/client';
-import { useMeQuery, useCreateUserMutation, MeDocument } from "../src/generated/graphql.ts";
+import { useMeQuery, useLoginMutation, MeDocument } from "../src/generated/graphql.ts";
 import { toErrorMap } from "../src/utils/toErrorMap";
 import { useRouter } from "next/router";
 import { withApollo } from "../src/utils/withApollo";
@@ -22,10 +22,11 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-const Register = ({}) => {
+
+const Login = ({}) => {
   const classes = useStyles();
   const router = useRouter();
-  const [register] = useCreateUserMutation();
+  const [login] = useLoginMutation();
   const apolloClient = useApolloClient();
   const { data, loading } = useMeQuery({
     skip: isServer(),
@@ -42,26 +43,34 @@ const Register = ({}) => {
   return (
     <Wrapper variant="small">
       <Formik
-        initialValues={{ email: "", password: "", type: "0" }}
+        initialValues={{ email: "", password: "" }}
         onSubmit={async (values, { setErrors }) => {
-          const response = await register({
-            variables: { userInput: values },
+          console.log(values);
+          console.log(login);
+          console.log(await login({variables: values}));
+          const response = await login({
+            variables: values,
             update: (cache, { data }) => {
               cache.writeQuery({
                 query: MeDocument,
                 data: {
                   __typename: "Query",
-                  me: data?.createUser.user,
+                  me: data?.login.user,
                 },
               });
             },
           });
           console.log(response);
-          if (response.data?.createUser.errors) {
-            setErrors(toErrorMap(response.data.createUser.errors));
-          } else if (response.data?.createUser.user) {
-            await apolloClient.resetStore();
-            router.push("/overview");
+          if (response.data?.login.errors) {
+            setErrors(toErrorMap(response.data.login.errors));
+          } else if (response.data?.login.user) {
+            if (typeof router.query.next === "string") {
+              router.push(router.query.next);
+            } else {
+              // worked
+              await apolloClient.resetStore();
+              router.push("/overview");
+            }
           }
         }}
       >
@@ -82,12 +91,19 @@ const Register = ({}) => {
                 type="password"
               />
             </Box>
+            {/*
+            <Box display="flex" mt={2}>
+              <NextLink href="/forgot-password">
+                <Link ml="auto">forgot password?</Link>
+              </NextLink>
+            </Box>
+            */}
             <LoadingButton
               mt={4}
               type="submit"
               pending={isSubmitting}
             >
-              register
+              login
             </LoadingButton>
           </Form>
         )}
@@ -96,4 +112,4 @@ const Register = ({}) => {
   );
 };
 
-export default withApollo({ ssr: true })(Register);
+export default withApollo({ ssr: false })(Login);

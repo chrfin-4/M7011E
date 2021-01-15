@@ -9,7 +9,6 @@ export const Wrapper = ({
     <Box
       mt={8}
       mx="auto"
-      maxWidth={variant === "regular" ? "800px" : "400px"}
       width="100%"
     >
       {children}

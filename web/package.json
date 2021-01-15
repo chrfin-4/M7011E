@@ -4,8 +4,11 @@
   "private": true,
   "dependencies": {
     "@apollo/client": "^3.3.6",
-    "@material-ui/core": "latest",
-    "@material-ui/icons": "^4.11.2",
+    "@emotion/react": "^11.1.4",
+    "@emotion/styled": "^11.0.0",
+    "@material-ui/core": "^5.0.0-alpha.23",
+    "@material-ui/icons": "^5.0.0-alpha.23",
+    "@material-ui/lab": "^5.0.0-alpha.23",
     "clsx": "latest",
     "formik": "^2.2.6",
     "formik-material-ui": "^3.0.1",
