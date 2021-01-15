@@ -3,6 +3,7 @@ const Manager = require('./manager.js').Manager;
 const Weather = require('./weather.js').Weather;
 const Powerplant = require('./powerplant.js').Powerplant;
 const Consumer = require('./consumer.js').Consumer;
+const pricing = require('./pricing.js');
 const util = require('./util.js');
 const assert = util.assert;
 
@@ -38,14 +39,17 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
   let running = false;
   let consumers;
   let manager = Manager();  // FIXME: either take as parameter or make sure to use appropriate args here
-  let marketDemand;
+  let marketDemand = 0;
   let blackout = false; // At least one home is not getting its demands met.
 
   let simTime = util.toMilliseconds(t0);
   let weather = weatherModel?.currentWeather(simTime);
-  const electricityPrice = 23.50;  // FIXME: must get updated
+  const pricingModel = pricing.LinearPricingModel({initialPrice: 23.5, slope: 1/1000, maxPrice: 100});
+  let electricityPrice = manager.currentPrice();
+  let modeledPrice = pricingModel(marketDemand);
   let updateInterval;
   let timeoutToken;
+  // FIXME: This should be a parameter.
   const prosumerLocations = generateProsumerPositions(prosumers);
 
   // TODO: find a better name?
@@ -55,6 +59,7 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
       weather: weatherModel.currentWeather(simTime),
       electricityPrice,
       marketDemand,
+      modeledPrice,
     };
   };
 
@@ -83,7 +88,7 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
     },
     currentMarketDemand() { return marketDemand; },
     currentElectricityPrice() { return electricityPrice; },
-    modelledElectricityPrice() { return electricityPrice; }, // FIXME: add pricing model
+    modelledElectricityPrice() { return modeledPrice; },
     currentWeather() { return weather; },
     // TODO: add more methods for simulating prosumer/manager actions
     // (like getting consumption/production for a specific user, setting
@@ -150,6 +155,7 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
         running,
         prosumers: prosumers.length, // XXX: adding 1 for the manager??
         blackout,
+        modeledPrice,
       };
     },
 
@@ -170,6 +176,8 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
     const { bought, sold } = performExchange(supply+managerSupply, demand);
     manager.finishUpdate();
     updateBlackout();
+    electricityPrice = manager.currentPrice();
+    modeledPrice = pricingModel(marketDemand);
     assert(bought >= 0);
     assert(sold >= 0);
     assert(Math.round(bought) == Math.round(sold));
