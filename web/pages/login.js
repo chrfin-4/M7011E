@@ -1,7 +1,6 @@
 import React from "react";
 import clsx from 'clsx';
 import { Formik, Form, Field } from "formik";
-import { Wrapper } from "../components/Wrapper";
 import { useApolloClient } from '@apollo/client';
 import { useMeQuery, useLoginMutation, MeDocument } from "../src/generated/graphql.ts";
 import { toErrorMap } from "../src/utils/toErrorMap";
@@ -17,6 +16,10 @@ import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton} from '@material-ui/lab';
 
 const useStyles = makeStyles((theme) => ({
+  wrapper: {
+    width: '100%',
+    marginTop: 8
+  },
   formField: {
     marginTop: 8
   }
@@ -41,74 +44,76 @@ const Login = ({}) => {
   }
 
   return (
-    <Wrapper variant="small">
-      <Formik
-        initialValues={{ email: "", password: "" }}
-        onSubmit={async (values, { setErrors }) => {
-          console.log(values);
-          console.log(login);
-          console.log(await login({variables: values}));
-          const response = await login({
-            variables: values,
-            update: (cache, { data }) => {
-              cache.writeQuery({
-                query: MeDocument,
-                data: {
-                  __typename: "Query",
-                  me: data?.login.user,
-                },
-              });
-            },
-          });
-          console.log(response);
-          if (response.data?.login.errors) {
-            setErrors(toErrorMap(response.data.login.errors));
-          } else if (response.data?.login.user) {
-            if (typeof router.query.next === "string") {
-              router.push(router.query.next);
-            } else {
-              // worked
-              await apolloClient.resetStore();
-              router.push("/overview");
+    <Box className={clsx(classes.wrapper)}>
+      <Box mx="auto">
+        <Formik
+          initialValues={{ email: "", password: "" }}
+          onSubmit={async (values, { setErrors }) => {
+            console.log(values);
+            console.log(login);
+            console.log(await login({variables: values}));
+            const response = await login({
+              variables: values,
+              update: (cache, { data }) => {
+                cache.writeQuery({
+                  query: MeDocument,
+                  data: {
+                    __typename: "Query",
+                    me: data?.login.user,
+                  },
+                });
+              },
+            });
+            console.log(response);
+            if (response.data?.login.errors) {
+              setErrors(toErrorMap(response.data.login.errors));
+            } else if (response.data?.login.user) {
+              if (typeof router.query.next === "string") {
+                router.push(router.query.next);
+              } else {
+                // worked
+                await apolloClient.resetStore();
+                router.push("/overview");
+              }
             }
-          }
-        }}
-      >
-        {({ isSubmitting }) => (
-          <Form>
-            <Field
-              component={TextField}
-              name="email"
-              label="Email"
-              id="email"
-            />
-            <Box className={clsx(classes.formField)}>
+          }}
+        >
+          {({ isSubmitting }) => (
+            <Form>
               <Field
                 component={TextField}
-                name="password"
-                label="Password"
-                id="password"
-                type="password"
+                name="email"
+                label="Email"
+                id="email"
               />
-            </Box>
-            {/*
-            <Box display="flex" mt={2}>
-              <NextLink href="/forgot-password">
-                <Link ml="auto">forgot password?</Link>
-              </NextLink>
-            </Box>
-            */}
-            <LoadingButton
-              mt={4}
-              type="submit"
-              pending={isSubmitting}
-            >
-              login
-            </LoadingButton>
-          </Form>
-        )}
-      </Formik>
-    </Wrapper>
+              <Box className={clsx(classes.formField)}>
+                <Field
+                  component={TextField}
+                  name="password"
+                  label="Password"
+                  id="password"
+                  type="password"
+                />
+              </Box>
+              {/*
+              <Box display="flex" mt={2}>
+                <NextLink href="/forgot-password">
+                  <Link ml="auto">forgot password?</Link>
+                </NextLink>
+              </Box>
+              */}
+              <LoadingButton
+                mt={4}
+                type="submit"
+                pending={isSubmitting}
+              >
+                login
+              </LoadingButton>
+            </Form>
+          )}
+        </Formik>
+      </Box>
+    </Box>
   );
 };
 

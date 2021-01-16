@@ -42,6 +42,8 @@ export type Mutation = {
   createUser: UserResponse;
   login: UserResponse;
   logout?: Maybe<Scalars['Boolean']>;
+  assignProsumer?: Maybe<Scalars['Boolean']>;
+  unassignProsumer?: Maybe<Scalars['Boolean']>;
   setChargeRatio: Prosumer;
   setDischargeRatio: Prosumer;
   banProducer: Prosumer;
@@ -63,6 +65,11 @@ export type MutationCreateUserArgs = {
 export type MutationLoginArgs = {
   email: Scalars['String'];
   password: Scalars['String'];
+};
+
+
+export type MutationAssignProsumerArgs = {
+  prosumerId: Scalars['Int'];
 };
 
 
@@ -142,7 +149,7 @@ export type UserResponse = {
 export type ProsumerData = {
   __typename?: 'ProsumerData';
   banned: Scalars['Boolean'];
-  houseId: Scalars['Int'];
+  houseId?: Maybe<Scalars['Int']>;
 };
 
 export type ManagerData = {
@@ -258,6 +265,24 @@ export type LogoutMutation = (
   & Pick<Mutation, 'logout'>
 );
 
+export type PurchaseMutationVariables = Exact<{
+  prosumerId: Scalars['Int'];
+}>;
+
+
+export type PurchaseMutation = (
+  { __typename?: 'Mutation' }
+  & Pick<Mutation, 'assignProsumer'>
+);
+
+export type SellMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type SellMutation = (
+  { __typename?: 'Mutation' }
+  & Pick<Mutation, 'unassignProsumer'>
+);
+
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -266,6 +291,35 @@ export type MeQuery = (
   & { me?: Maybe<(
     { __typename?: 'User' }
     & Pick<User, '_id' | 'email' | 'type'>
+    & { prosumerData?: Maybe<(
+      { __typename?: 'ProsumerData' }
+      & Pick<ProsumerData, 'banned' | 'houseId'>
+    )> }
+  )> }
+);
+
+export type OwnedQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type OwnedQuery = (
+  { __typename?: 'Query' }
+  & { users: Array<(
+    { __typename?: 'User' }
+    & { prosumerData?: Maybe<(
+      { __typename?: 'ProsumerData' }
+      & Pick<ProsumerData, 'houseId'>
+    )> }
+  )> }
+);
+
+export type ProsumersQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ProsumersQuery = (
+  { __typename?: 'Query' }
+  & { prosumerStates: Array<(
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'id'>
   )> }
 );
 
@@ -378,12 +432,75 @@ export function useLogoutMutation(baseOptions?: Apollo.MutationHookOptions<Logou
 export type LogoutMutationHookResult = ReturnType<typeof useLogoutMutation>;
 export type LogoutMutationResult = Apollo.MutationResult<LogoutMutation>;
 export type LogoutMutationOptions = Apollo.BaseMutationOptions<LogoutMutation, LogoutMutationVariables>;
+export const PurchaseDocument = gql`
+    mutation Purchase($prosumerId: Int!) {
+  assignProsumer(prosumerId: $prosumerId)
+}
+    `;
+export type PurchaseMutationFn = Apollo.MutationFunction<PurchaseMutation, PurchaseMutationVariables>;
+
+/**
+ * __usePurchaseMutation__
+ *
+ * To run a mutation, you first call `usePurchaseMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `usePurchaseMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [purchaseMutation, { data, loading, error }] = usePurchaseMutation({
+ *   variables: {
+ *      prosumerId: // value for 'prosumerId'
+ *   },
+ * });
+ */
+export function usePurchaseMutation(baseOptions?: Apollo.MutationHookOptions<PurchaseMutation, PurchaseMutationVariables>) {
+        return Apollo.useMutation<PurchaseMutation, PurchaseMutationVariables>(PurchaseDocument, baseOptions);
+      }
+export type PurchaseMutationHookResult = ReturnType<typeof usePurchaseMutation>;
+export type PurchaseMutationResult = Apollo.MutationResult<PurchaseMutation>;
+export type PurchaseMutationOptions = Apollo.BaseMutationOptions<PurchaseMutation, PurchaseMutationVariables>;
+export const SellDocument = gql`
+    mutation Sell {
+  unassignProsumer
+}
+    `;
+export type SellMutationFn = Apollo.MutationFunction<SellMutation, SellMutationVariables>;
+
+/**
+ * __useSellMutation__
+ *
+ * To run a mutation, you first call `useSellMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSellMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [sellMutation, { data, loading, error }] = useSellMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useSellMutation(baseOptions?: Apollo.MutationHookOptions<SellMutation, SellMutationVariables>) {
+        return Apollo.useMutation<SellMutation, SellMutationVariables>(SellDocument, baseOptions);
+      }
+export type SellMutationHookResult = ReturnType<typeof useSellMutation>;
+export type SellMutationResult = Apollo.MutationResult<SellMutation>;
+export type SellMutationOptions = Apollo.BaseMutationOptions<SellMutation, SellMutationVariables>;
 export const MeDocument = gql`
     query Me {
   me {
     _id
     email
     type
+    prosumerData {
+      banned
+      houseId
+    }
   }
 }
     `;
@@ -412,3 +529,69 @@ export function useMeLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MeQuery
 export type MeQueryHookResult = ReturnType<typeof useMeQuery>;
 export type MeLazyQueryHookResult = ReturnType<typeof useMeLazyQuery>;
 export type MeQueryResult = Apollo.QueryResult<MeQuery, MeQueryVariables>;
+export const OwnedDocument = gql`
+    query Owned {
+  users {
+    prosumerData {
+      houseId
+    }
+  }
+}
+    `;
+
+/**
+ * __useOwnedQuery__
+ *
+ * To run a query within a React component, call `useOwnedQuery` and pass it any options that fit your needs.
+ * When your component renders, `useOwnedQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useOwnedQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useOwnedQuery(baseOptions?: Apollo.QueryHookOptions<OwnedQuery, OwnedQueryVariables>) {
+        return Apollo.useQuery<OwnedQuery, OwnedQueryVariables>(OwnedDocument, baseOptions);
+      }
+export function useOwnedLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OwnedQuery, OwnedQueryVariables>) {
+          return Apollo.useLazyQuery<OwnedQuery, OwnedQueryVariables>(OwnedDocument, baseOptions);
+        }
+export type OwnedQueryHookResult = ReturnType<typeof useOwnedQuery>;
+export type OwnedLazyQueryHookResult = ReturnType<typeof useOwnedLazyQuery>;
+export type OwnedQueryResult = Apollo.QueryResult<OwnedQuery, OwnedQueryVariables>;
+export const ProsumersDocument = gql`
+    query Prosumers {
+  prosumerStates {
+    id
+  }
+}
+    `;
+
+/**
+ * __useProsumersQuery__
+ *
+ * To run a query within a React component, call `useProsumersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useProsumersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useProsumersQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useProsumersQuery(baseOptions?: Apollo.QueryHookOptions<ProsumersQuery, ProsumersQueryVariables>) {
+        return Apollo.useQuery<ProsumersQuery, ProsumersQueryVariables>(ProsumersDocument, baseOptions);
+      }
+export function useProsumersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProsumersQuery, ProsumersQueryVariables>) {
+          return Apollo.useLazyQuery<ProsumersQuery, ProsumersQueryVariables>(ProsumersDocument, baseOptions);
+        }
+export type ProsumersQueryHookResult = ReturnType<typeof useProsumersQuery>;
+export type ProsumersLazyQueryHookResult = ReturnType<typeof useProsumersLazyQuery>;
+export type ProsumersQueryResult = Apollo.QueryResult<ProsumersQuery, ProsumersQueryVariables>;

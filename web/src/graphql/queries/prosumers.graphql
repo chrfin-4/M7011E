@@ -1,0 +1,5 @@
+query Prosumers {
+  prosumerStates {
+    id
+  }
+}

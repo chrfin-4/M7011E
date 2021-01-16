@@ -1,0 +1,7 @@
+query Owned {
+  users {
+    prosumerData {
+      houseId
+    }
+  }
+}

@@ -1,6 +1,6 @@
 overwrite: true
 schema: ${SCHEMA}
-documents: "src/graphql/*.graphql"
+documents: "src/graphql/**/*.graphql"
 generates:
   src/generated/graphql.ts:
     plugins:

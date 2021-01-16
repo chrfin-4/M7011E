@@ -50,6 +50,12 @@ const useStyles = makeStyles((theme) => ({
   menuButton: {
     marginRight: 36,
   },
+  linkButton: {
+    // backgroundColor: 'rgb(20, 106, 98)',
+    // color: 'rgb(119, 229, 219)'
+    background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
+    color: 'white',
+  }
 }));
 
 export const NavBar = ({}) => {
@@ -74,22 +80,22 @@ export const NavBar = ({}) => {
               <Typography component="h1" variant="h6" color="inherit" noWrap className={clsx(classes.title)}>
                 Exerge
               </Typography>
-              <Button variant="outlined">
                 <NextLink href="/" >
-                  <Link>Home</Link>
-                </NextLink>
+              <Button variant="contained" disableElevation className={clsx(classes.linkButton)}>
+                  Home
               </Button>
+                </NextLink>
               <Box className={clsx(classes.filler)}/>
-              <Button variant="outlined">
                 <NextLink href="/login" >
-                  <Link>Login</Link>
-                </NextLink>
+              <Button variant="contained" disableElevation className={clsx(classes.linkButton)}>
+                  Login
               </Button>
-              <Button variant="outlined">
+                </NextLink>
                 <NextLink href="/register" >
-                  <Link>Register</Link>
-                </NextLink>
+              <Button variant="contained" disableElevation className={clsx(classes.linkButton)}>
+                  Register
               </Button>
+                </NextLink>
             </Toolbar>
           </AppBar>
         </Box>
@@ -100,7 +106,7 @@ export const NavBar = ({}) => {
     body = (
       <React.Fragment>
         <Box className={classes.root}>
-          <AppBar position="sticky" className={clsx(classes.appBar)}>
+          <AppBar position="fixed" className={clsx(classes.appBar)}>
             <Toolbar className={classes.toolbar}>
               {/* <Logo className={classes.toolbarIcon} /> */}
               <NextLink href="/" >
@@ -110,24 +116,25 @@ export const NavBar = ({}) => {
                   </Link>
                 </Typography>
               </NextLink>
-              <Button variant="outlined">
-                <NextLink href="/" >
-                  <Link>Home</Link>
-                </NextLink>
-              </Button>
-              <Button variant="outlined">
+              <NextLink href="/" >
+                <Button variant="contained" disableElevation className={clsx(classes.linkButton)}>
+                  Home
+                </Button>
+              </NextLink>
                 <NextLink href="/overview" >
-                  <Link>Overview</Link>
-                </NextLink>
+              <Button variant="contained" disableElevation className={clsx(classes.linkButton)}>
+                  Overview
               </Button>
-              <Button variant="outlined">
+                </NextLink>
                 <NextLink href="/stats" >
-                  <Link>Statistics</Link>
-                </NextLink>
+              <Button variant="contained" disableElevation className={clsx(classes.linkButton)}>
+                  Statistics
               </Button>
+                </NextLink>
               <Box className={clsx(classes.filler)}/>
               <LoadingButton
-                variant="outlined"
+                variant="contained" disableElevation className={clsx(classes.linkButton)}
+                color="secondary"
                 onClick={async () => {
                   await logout();
                   await apolloClient.resetStore();
@@ -140,13 +147,13 @@ export const NavBar = ({}) => {
             </Toolbar>
           </AppBar>
         </Box>
-        <Toolbar/>
+        <Toolbar />
       </React.Fragment>
     );
   }
 
 
   return (
-    <Box id="root">{body}</Box>
+    <Box id="root" sx={{ mb: 4 }} >{body}</Box>
   );
 };

@@ -35,6 +35,7 @@ module.exports = {
         const result = await user.save();
 
         context.req.session.userId = user.id;
+        context.req.session.userType = user.type;
 
         return { 
           user: {
@@ -76,6 +77,8 @@ module.exports = {
       // this will set a cookie on the user
       // keep them logged in
       context.req.session.userId = user.id;
+      context.req.session.userType = user.type;
+      console.log(user);
 
       return {
         user: {
