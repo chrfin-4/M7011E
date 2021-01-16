@@ -9,6 +9,9 @@ type Mutation {
   createUser(userInput: UserInput): UserResponse!
   login(email: String!, password: String!): UserResponse!
   logout: Boolean
+
+  assignProsumer(prosumerId: Int!): Boolean
+  unassignProsumer: Boolean
 }
 
 type FieldError {
@@ -32,7 +35,7 @@ type UserResponse {
 
 type ProsumerData {
   banned: Boolean!
-  houseId: Int!
+  houseId: Int
 }
 
 type ManagerData {

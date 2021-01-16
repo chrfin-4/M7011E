@@ -1,17 +1,20 @@
 import React from 'react'
-import clsx from 'clsx';
-import { Formik, Form, Field } from "formik";
 import { Wrapper } from "../components/Wrapper";
 import { useApolloClient } from '@apollo/client';
 import { useMeQuery, useCreateUserMutation, MeDocument } from "../src/generated/graphql.ts";
 import { toErrorMap } from "../src/utils/toErrorMap";
 import { useRouter } from "next/router";
 import { withApollo } from "../src/utils/withApollo";
-import { TextField } from 'formik-material-ui';
 import { isServer } from "../src/utils/isServer";
 
+import { Formik, Form, Field } from "formik";
+import { TextField, RadioGroup } from 'formik-material-ui';
+
+import clsx from 'clsx';
 import { 
   Box,
+  Radio,
+  FormControlLabel,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton} from '@material-ui/lab';
@@ -81,6 +84,28 @@ const Register = ({}) => {
                 id="password"
                 type="password"
               />
+            </Box>
+            <Box className={clsx(classes.formField)}>
+                  <Field label="Type of user" component={RadioGroup} name="type">
+                    <FormControlLabel
+                      control={<Radio disabled={isSubmitting}/>}
+                      label="Consumer"
+                      value="0"
+                      disabled={isSubmitting}
+                    />
+                    <FormControlLabel
+                      control={<Radio disabled={isSubmitting}/>}
+                      label="Prosumer"
+                      value="1"
+                      disabled={isSubmitting}
+                    />
+                    <FormControlLabel
+                      control={<Radio disabled={isSubmitting}/>}
+                      label="Manager"
+                      value="2"
+                      disabled={isSubmitting}
+                    />
+                  </Field>
             </Box>
             <LoadingButton
               mt={4}

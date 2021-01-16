@@ -1,0 +1,11 @@
+query Me {
+  me {
+    _id
+    email
+    type
+    prosumerData {
+      banned
+      houseId
+    }
+  }
+}

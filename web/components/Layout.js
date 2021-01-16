@@ -6,7 +6,7 @@ export const Layout = ({ children, variant }) => {
   return (
     <>
       <NavBar />
-      <Wrapper variant={variant}>{children}</Wrapper>
+      {children}
     </>
   );
 };
