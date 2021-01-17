@@ -323,6 +323,27 @@ export type ProsumersQuery = (
   )> }
 );
 
+export type SimDataQueryVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type SimDataQuery = (
+  { __typename?: 'Query' }
+  & Pick<Query, 'marketDemand' | 'currentPrice' | 'modeledPrice'>
+  & { prosumerState?: Maybe<(
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'powerConsumption' | 'powerProduction' | 'chargeRatio' | 'dischargeRatio' | 'banned' | 'blackout' | 'productionStatus' | 'nextProductionTransition'>
+    & { battery?: Maybe<(
+      { __typename?: 'Battery' }
+      & Pick<Battery, 'charge' | 'capacity'>
+    )> }
+  )>, weather: (
+    { __typename?: 'Weather' }
+    & Pick<Weather, 'windSpeed'>
+  ) }
+);
+
 
 export const CreateUserDocument = gql`
     mutation CreateUser($userInput: UserInput) {
@@ -595,3 +616,53 @@ export function useProsumersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<
 export type ProsumersQueryHookResult = ReturnType<typeof useProsumersQuery>;
 export type ProsumersLazyQueryHookResult = ReturnType<typeof useProsumersLazyQuery>;
 export type ProsumersQueryResult = Apollo.QueryResult<ProsumersQuery, ProsumersQueryVariables>;
+export const SimDataDocument = gql`
+    query SimData($id: ID!) {
+  prosumerState(id: $id) {
+    powerConsumption
+    powerProduction
+    chargeRatio
+    dischargeRatio
+    banned
+    blackout
+    productionStatus
+    nextProductionTransition
+    battery {
+      charge
+      capacity
+    }
+  }
+  weather {
+    windSpeed
+  }
+  marketDemand
+  currentPrice
+  modeledPrice
+}
+    `;
+
+/**
+ * __useSimDataQuery__
+ *
+ * To run a query within a React component, call `useSimDataQuery` and pass it any options that fit your needs.
+ * When your component renders, `useSimDataQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useSimDataQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useSimDataQuery(baseOptions: Apollo.QueryHookOptions<SimDataQuery, SimDataQueryVariables>) {
+        return Apollo.useQuery<SimDataQuery, SimDataQueryVariables>(SimDataDocument, baseOptions);
+      }
+export function useSimDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<SimDataQuery, SimDataQueryVariables>) {
+          return Apollo.useLazyQuery<SimDataQuery, SimDataQueryVariables>(SimDataDocument, baseOptions);
+        }
+export type SimDataQueryHookResult = ReturnType<typeof useSimDataQuery>;
+export type SimDataLazyQueryHookResult = ReturnType<typeof useSimDataLazyQuery>;
+export type SimDataQueryResult = Apollo.QueryResult<SimDataQuery, SimDataQueryVariables>;

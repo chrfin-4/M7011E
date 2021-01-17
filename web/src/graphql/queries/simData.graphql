@@ -1,0 +1,22 @@
+query SimData($id: ID!) {
+  prosumerState(id: $id) {
+    powerConsumption
+    powerProduction
+    chargeRatio
+    dischargeRatio
+    banned
+    blackout
+    productionStatus
+    nextProductionTransition
+    battery {
+      charge
+      capacity
+    }
+  }
+  weather {
+    windSpeed
+  }
+  marketDemand
+  currentPrice
+  modeledPrice
+}
