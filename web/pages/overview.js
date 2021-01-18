@@ -91,10 +91,6 @@ const Overview = ({}) => {
     skip: isServer(),
   });
   let skip = isServer() || data?.me == undefined || data?.me == null;
-  console.log(isServer());
-  console.log(data?.me === undefined);
-  console.log(data?.me === null);
-  console.log(skip);
 
   const { data: oData, loading: oLoading } = useOwnedQuery({
     fetchPolicy: skip ? 'cache-only' : 'cache-and-network',
@@ -106,7 +102,6 @@ const Overview = ({}) => {
   });
 
   // Redirect if already signed in
-  console.log(data);
   if (loading || !data?.me && isServer()) return null;
   else if (!data?.me && !isServer()) router.push("/login");
 

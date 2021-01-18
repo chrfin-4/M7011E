@@ -261,7 +261,6 @@ const Stats = ({}) => {
               <Formik
                 initialValues={{ ratio: 0 }}
                 onSubmit={async (values) => {
-                  console.log(values);
                   const response = await setChargeRatio({
                     variables: {
                       id: meData.me.prosumerData.houseId,
@@ -308,7 +307,6 @@ const Stats = ({}) => {
               <Formik
                 initialValues={{ ratio: 0 }}
                 onSubmit={async (values) => {
-                  console.log(values);
                   const response = await setDischargeRatio({
                     variables: {
                       id: meData.me.prosumerData.houseId,

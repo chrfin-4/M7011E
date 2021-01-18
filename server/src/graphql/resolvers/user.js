@@ -49,7 +49,6 @@ module.exports = {
 
       const result = await User.find({prosumerData: { houseId: prosumerId }});
       if (result.length !== 0) {
-        console.log(result);
         return false;
       }
 

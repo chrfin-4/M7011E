@@ -78,7 +78,6 @@ module.exports = {
       // keep them logged in
       context.req.session.userId = user.id;
       context.req.session.userType = user.type;
-      console.log(user);
 
       return {
         user: {

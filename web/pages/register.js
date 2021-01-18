@@ -59,7 +59,6 @@ const Register = ({}) => {
               });
             },
           });
-          console.log(response);
           if (response.data?.createUser.errors) {
             setErrors(toErrorMap(response.data.createUser.errors));
           } else if (response.data?.createUser.user) {
