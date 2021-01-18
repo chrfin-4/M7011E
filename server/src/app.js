@@ -119,7 +119,7 @@ const main = async () => {
     `${process.env.MONGO_CONNECTION}`
   )
     .then(() => {
-      app.listen(parseInt(process.env.PORT));
+      app.listen(parseInt(process.env.SRV_PORT));
     })
     .catch(err => {
       console.log(err);

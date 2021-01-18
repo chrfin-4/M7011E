@@ -1,0 +1,15 @@
+[Unit]
+Description=Our awesome server
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+EnvironmentFile=/home/ubuntu/envs
+Restart=always
+RestartSec=1
+User=ubuntu
+ExecStart=/usr/bin/node $SIM_DIR/app.js
+
+[Install]
+WantedBy=multi-user.target

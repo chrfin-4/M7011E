@@ -9,7 +9,7 @@ const { join } = require('path');
 const main = async () => {
   const app = express();
 
-  const port = 8081;
+  const port = process.env.SIM_PORT;
 
   // --- Initialize the simulation ---
   model.simulation.startSimulation(1000);  // update each second

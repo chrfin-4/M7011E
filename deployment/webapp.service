@@ -5,10 +5,11 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=simple
+EnvironmentFile=/home/ubuntu/envs
 Restart=always
 RestartSec=1
 User=ubuntu
-ExecStart=/usr/bin/node /home/ubuntu/exerge/demo-app/server.js
+ExecStart=/usr/bin/yarn --cwd run next -p $WEB_DIR start
 
 [Install]
 WantedBy=multi-user.target

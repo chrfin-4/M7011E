@@ -1,46 +1,106 @@
- - hosts: loadbalancers
-   become: yes
-   tasks:
-     - name: Install certificates
-       template: src=exerge.pem dest=/etc/ssl/exerge.pem
-     - name: Install HAProxy
-       apt: name=haproxy
-     - name: Configure HAProxy
-       template: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg
-       notify:
-         - Restart HAProxy
-   handlers:
-     - name: Restart HAProxy
-       service:
-         name: haproxy
-         state: restarted
- - hosts: webservers
-   become: yes
-   tasks:
-     - name: Install nginx
-       apt: name=nginx
-     - name: Configure nginx
-       template: src=nginx-site.cfg dest=/etc/nginx/sites-available/default
-       notify:
-         - Restart Nginx
-     - name: Install NodeSource package signing key
-       shell: curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
-     - name: Install NodeSource repository
-       shell: echo "deb https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-     - shell: echo "deb-src https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
-     - name: Install Node.js (urK)
-       apt: name=nodejs update_cache=true
-     - name: Download application
-       git:
-         repo: https://github.com/chrfin-4/M7011E.git
-         dest: /home/ubuntu/exerge
-         force: yes
-     - name: Install server in systemd
-       copy: src=app.service dest=/etc/systemd/system/exerge.service
-     - name: Start server
-       systemd: state=started name=exerge daemon_reload=yes
-   handlers:
-     - name: Restart Nginx
-       service:
-         name: nginx
-         state: restarted
+- hosts: loadbalancers
+  become: yes
+  tasks:
+    - name: Install certificates
+      template: src=exerge.pem dest=/etc/ssl/exerge.pem
+    - name: Install HAProxy
+      apt: name=haproxy
+    - name: Configure HAProxy
+      template: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg
+      notify:
+        - Restart HAProxy
+  handlers:
+    - name: Restart HAProxy
+      service:
+        name: haproxy
+        state: restarted
+- hosts: dbservers
+  become: yes
+  tasks:
+    - name: Install MongoDB package signing key
+      shell: wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+    - name: Install MongoDB repository
+      shell: echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+    - name: Install MongoDB
+      apt: name=mongodb-org update_cache=true
+    - name: Start MongoDB
+      systemd: state=started name=mongod daemon_reload=yes
+    - name: Get MongoDB pass
+      shell: grep envs -oPe '(?<=DB_PWD=).*'
+      register: password
+    - name: Create MongoDB user
+      community.mongodb.mongodb_user:
+        name: ubuntu
+        pass: '{{ password }}'
+    - name: Install NodeSource package signing key
+      shell: curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
+    - name: Install NodeSource repository
+      shell: echo "deb https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+    - shell: echo "deb-src https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
+    - name: Install Node.js (urK)
+      apt: name=nodejs update_cache=true
+    - name: Download simulator
+      git:
+        repo: https://github.com/chrfin-4/M7011E.git
+        dest: /home/ubuntu/exerge
+        depth: 1
+        force: yes
+    - name: Install simulator in systemd
+      copy: src=simulator.service dest=/etc/systemd/system/exerge_sim.service
+    - name: Start server
+      systemd: state=started name=exerge_sim daemon_reload=yes
+- hosts: webservers
+  become: yes
+  tasks:
+    - name: Install nginx
+      apt: name=nginx
+    - name: Configure nginx
+      template: src=nginx-site.cfg dest=/etc/nginx/sites-available/default
+      notify:
+        - Restart Nginx
+    - name: Install NodeSource package signing key
+      shell: curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
+    - name: Install NodeSource repository
+      shell: echo "deb https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+    - shell: echo "deb-src https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
+    - name: Install Node.js (urK)
+      apt: name=nodejs update_cache=true
+    - name: Install yarn
+      apt: name=yarnpkg
+    - name: Install Redis
+      apt: name=redis-server
+    - name: Configure Redis
+      community.general.redis:
+        command: config
+        name: supervised
+        value: systemd
+      notify:
+        - Restart Redis
+    - name: Deploy environment file
+      template: src=envs dest=/home/ubuntu/envs
+    - name: Download application
+      git:
+        repo: https://github.com/chrfin-4/M7011E.git
+        dest: /home/ubuntu/exerge
+        depth: 1
+        force: yes
+    - name: Build frontend
+      shell: yarn build --cwd /home/ubuntu/exerge/web
+    - name: Install server in systemd
+      copy: src=server.service dest=/etc/systemd/system/exerge.service
+    - name: Install webapp in systemd
+      copy: src=webapp.service dest=/etc/systemd/system/exerge_web.service
+    - name: Start server
+      systemd: state=started name=exerge daemon_reload=yes
+    - name: Start webapp
+      systemd: state=started name=exerge_web daemon_reload=yes
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+    - name: Restart Redis
+      service:
+        name: redis
+        state: restarted
+    
