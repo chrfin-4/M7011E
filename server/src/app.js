@@ -115,9 +115,7 @@ const main = async () => {
 
   // ==== Start server ====
 
-  mongoose.connect(
-    `${process.env.MONGO_CONNECTION}`
-  )
+  mongoose.connect(process.env.MONGO_CONNECTION, {useNewUrlParser: true})
     .then(() => {
       app.listen(parseInt(process.env.SRV_PORT));
     })
