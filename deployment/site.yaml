@@ -17,6 +17,12 @@
 - hosts: dbservers
   become: yes
   tasks:
+    - name: Deploy environment file
+      template: src=envs dest=/home/ubuntu/envs
+      become: false
+    - name: Get MongoDB pass 
+      shell: "grep /home/ubuntu/envs -oPe '(?<=DB_PWD=).*' | xargs echo -n" 
+      register: password
     - name: Install MongoDB package signing key
       shell: wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
     - name: Install MongoDB repository
@@ -25,13 +31,23 @@
       apt: name=mongodb-org update_cache=true
     - name: Start MongoDB
       systemd: state=started name=mongod daemon_reload=yes
-    - name: Get MongoDB pass
-      shell: grep envs -oPe '(?<=DB_PWD=).*'
-      register: password
-    - name: Create MongoDB user
+    - name: Create admin user
       community.mongodb.mongodb_user:
+        db: admin
+        name: admin
+        pass: "{{password.stdout}}"
+        state: present
+        roles: root
+    - name: Create user
+      community.mongodb.mongodb_user:
+        login_user: admin
+        login_password: "{{password.stdout}}"
+        database: m7011e
         name: ubuntu
-        pass: '{{ password }}'
+        pass: "{{password.stdout}}"
+        roles:
+          - { db: "admin", role: "readWrite" }
+          - { db: "m7011e", role: "readWrite" }
     - name: Install NodeSource package signing key
       shell: curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
     - name: Install NodeSource repository
@@ -39,19 +55,32 @@
     - shell: echo "deb-src https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
     - name: Install Node.js (urK)
       apt: name=nodejs update_cache=true
+    - name: Install Yarn package signing key
+      shell: curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+    - name: Install Yarn repository
+      shell: echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+    - name: Install Yarn
+      apt: name=yarn update_cache=true
     - name: Download simulator
+      become: false
       git:
         repo: https://github.com/chrfin-4/M7011E.git
         dest: /home/ubuntu/exerge
         depth: 1
         force: yes
+    - name: Yarn install
+      shell: yarn --cwd /home/ubuntu/exerge/simulator install
+      become: false
     - name: Install simulator in systemd
       copy: src=simulator.service dest=/etc/systemd/system/exerge_sim.service
     - name: Start server
-      systemd: state=started name=exerge_sim daemon_reload=yes
+      systemd: state=restarted name=exerge_sim daemon_reload=yes
 - hosts: webservers
   become: yes
   tasks:
+    - name: Deploy environment file
+      template: src=envs dest=/home/ubuntu/envs
+      become: false
     - name: Install nginx
       apt: name=nginx
     - name: Configure nginx
@@ -65,35 +94,42 @@
     - shell: echo "deb-src https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
     - name: Install Node.js (urK)
       apt: name=nodejs update_cache=true
-    - name: Install yarn
-      apt: name=yarnpkg
+    - name: Install Yarn package signing key
+      shell: curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+    - name: Install Yarn repository
+      shell: echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+    - name: Install Yarn
+      apt: name=yarn update_cache=true
     - name: Install Redis
       apt: name=redis-server
     - name: Configure Redis
-      community.general.redis:
-        command: config
-        name: supervised
-        value: systemd
+      template: src=redis.conf dest=/etc/redis/redis.conf
       notify:
         - Restart Redis
-    - name: Deploy environment file
-      template: src=envs dest=/home/ubuntu/envs
     - name: Download application
+      become: false
       git:
         repo: https://github.com/chrfin-4/M7011E.git
         dest: /home/ubuntu/exerge
         depth: 1
         force: yes
+    - name: Yarn install server
+      become: false
+      shell: yarn --cwd /home/ubuntu/exerge/server install
+    - name: Yarn install web
+      become: false
+      shell: yarn --cwd /home/ubuntu/exerge/web install
     - name: Build frontend
-      shell: yarn build --cwd /home/ubuntu/exerge/web
+      become: false
+      shell: yarn --cwd /home/ubuntu/exerge/web build 
     - name: Install server in systemd
       copy: src=server.service dest=/etc/systemd/system/exerge.service
     - name: Install webapp in systemd
       copy: src=webapp.service dest=/etc/systemd/system/exerge_web.service
     - name: Start server
-      systemd: state=started name=exerge daemon_reload=yes
+      systemd: state=restarted name=exerge daemon_reload=yes
     - name: Start webapp
-      systemd: state=started name=exerge_web daemon_reload=yes
+      systemd: state=restarted name=exerge_web daemon_reload=yes
   handlers:
     - name: Restart Nginx
       service:

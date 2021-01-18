@@ -32,14 +32,7 @@ const main = async () => {
 
   // ==== Start server ====
 
-  mongoose.connect(
-    `${process.env.MONGO_CONNECTION}`
-    /*
-    `mongodb+srv://${process.env.MONGO_USER}:${
-      process.env.MONGO_PASSWORD
-    }@cluster0.zaaoj.mongodb.net/${process.env.MONGO_DB}?retryWrites=true&w=majority`
-    */
-  )
+  mongoose.connect(process.env.MONGO_CONNECTION, {useNewUrlParser: true})
   .then(() => {
     app.listen(port);
   })
