@@ -67,11 +67,6 @@ const useStyles = makeStyles((theme) => ({
     // width: '30%',
   },
   item: {
-    background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
-    border: 0,
-    borderRadius: 3,
-    boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
-    color: 'white',
     height: 48,
     padding: '0 30px',
     width: '100%'
@@ -92,25 +87,28 @@ const Overview = ({}) => {
   const [sell] = useSellMutation();
   const apolloClient = useApolloClient();
 
-  const { data: oData, loading: oLoading } = useOwnedQuery({
-    skip: isServer(),
-  })
-
-  const { data: pData, loading: pLoading } = useProsumersQuery({
-    skip: isServer(),
-  });
-
   const { data, loading } = useMeQuery({
     skip: isServer(),
   });
+  let skip = isServer() || data?.me == undefined || data?.me == null;
+  console.log(isServer());
+  console.log(data?.me === undefined);
+  console.log(data?.me === null);
+  console.log(skip);
+
+  const { data: oData, loading: oLoading } = useOwnedQuery({
+    fetchPolicy: skip ? 'cache-only' : 'cache-and-network',
+    skip: skip,
+  })
+
+  const { data: pData, loading: pLoading } = useProsumersQuery({
+    skip: skip,
+  });
 
   // Redirect if already signed in
-  if (typeof window !== 'undefined') {
-    if (loading) {
-    } else if (!data?.me) {
-      router.push("/login")
-    }
-  }
+  console.log(data);
+  if (loading || !data?.me && isServer()) return null;
+  else if (!data?.me && !isServer()) router.push("/login");
 
   let body1 = null;
   let body2 = null;
@@ -139,9 +137,11 @@ const Overview = ({}) => {
                   <CardActions>
                     <Button 
                       sx={{ mb: 1 }}
+                      variant="contained"
+                      color="primary"
                       className={clsx(classes.item)}
                       id={"house"+ps.id}
-                      disabled={owned.includes(parseInt(ps.id)) || data.me.prosumerData.houseId !== undefined && data.me.prosumerData.houseId !== null}
+                      disabled={owned.includes(parseInt(ps.id)) || data.me?.prosumerData.houseId !== undefined && data.me?.prosumerData.houseId !== null}
                       onClick={async () => {
                         if (owned.includes(parseInt(ps.id))) {
                         } else {
@@ -165,8 +165,8 @@ const Overview = ({}) => {
       </Box>
     )
 
-    const { houseId } = data.me.prosumerData;
-    const ow = data.me.prosumerData.houseId !== undefined && data.me.prosumerData.houseId !== null
+    const houseId = data.me?.prosumerData.houseId;
+    const ow = data.me?.prosumerData.houseId !== undefined && data.me?.prosumerData.houseId !== null
     body2 = (
       <Box sx={{ mx: 'auto', width: '30%'}}>
         <Card>
@@ -181,6 +181,8 @@ const Overview = ({}) => {
           <CardActions>
             <Button 
               sx={{ mb: 1 }}
+              variant="contained"
+              color="secondary"
               className={clsx(classes.item)}
               disabled={!ow}
               onClick={async () => {
@@ -200,8 +202,8 @@ const Overview = ({}) => {
   return (
     <Box>
       {
-        data?.me.prosumerData.houseId !== undefined && data.me.prosumerData.houseId !== null ? (
-          <Alert severity="info" sx={{width: '30%', mx: 'auto', mb: 4 }}>You already own a house</Alert>
+        data.me?.prosumerData.houseId !== undefined && data.me?.prosumerData.houseId !== null ? (
+          <Alert severity="success" sx={{width: '30%', mx: 'auto', mb: 4 }}>You are a house owner!</Alert>
         ) : (
           <Alert severity="warning" sx={{width: '30%', mx: 'auto', mb: 4 }}>You don't own a house</Alert>
         )

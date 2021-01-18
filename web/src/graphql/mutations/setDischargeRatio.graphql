@@ -1,0 +1,6 @@
+mutation SetDischargeRatio($id: ID!, $ratio: Float!) {
+  setDischargeRatio(id: $id, ratio: $ratio) {
+    id
+    chargeRatio
+  }
+}

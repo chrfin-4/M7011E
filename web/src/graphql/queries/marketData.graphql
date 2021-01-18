@@ -1,0 +1,8 @@
+query MarketData {
+  weather {
+    windSpeed
+  }
+  marketDemand
+  currentPrice
+  modeledPrice
+}

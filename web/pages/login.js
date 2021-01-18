@@ -49,9 +49,6 @@ const Login = ({}) => {
         <Formik
           initialValues={{ email: "", password: "" }}
           onSubmit={async (values, { setErrors }) => {
-            console.log(values);
-            console.log(login);
-            console.log(await login({variables: values}));
             const response = await login({
               variables: values,
               update: (cache, { data }) => {
@@ -64,7 +61,6 @@ const Login = ({}) => {
                 });
               },
             });
-            console.log(response);
             if (response.data?.login.errors) {
               setErrors(toErrorMap(response.data.login.errors));
             } else if (response.data?.login.user) {

@@ -50,6 +50,7 @@ export type Mutation = {
   turnProductionOn: Prosumer;
   turnProductionOff: Prosumer;
   setProductionLevel: Prosumer;
+  setElectricityPrice: Prosumer;
   startSimulation: Simulation;
   stopSimulation: Simulation;
   advanceBy: Simulation;
@@ -104,6 +105,12 @@ export type MutationTurnProductionOffArgs = {
 export type MutationSetProductionLevelArgs = {
   id: Scalars['ID'];
   percent: Scalars['Int'];
+};
+
+
+export type MutationSetElectricityPriceArgs = {
+  id: Scalars['ID'];
+  price: Scalars['Float'];
 };
 
 
@@ -283,6 +290,46 @@ export type SellMutation = (
   & Pick<Mutation, 'unassignProsumer'>
 );
 
+export type SetChargeRatioMutationVariables = Exact<{
+  id: Scalars['ID'];
+  ratio: Scalars['Float'];
+}>;
+
+
+export type SetChargeRatioMutation = (
+  { __typename?: 'Mutation' }
+  & { setChargeRatio: (
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'id' | 'chargeRatio'>
+  ) }
+);
+
+export type SetDischargeRatioMutationVariables = Exact<{
+  id: Scalars['ID'];
+  ratio: Scalars['Float'];
+}>;
+
+
+export type SetDischargeRatioMutation = (
+  { __typename?: 'Mutation' }
+  & { setDischargeRatio: (
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'id' | 'chargeRatio'>
+  ) }
+);
+
+export type MarketDataQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MarketDataQuery = (
+  { __typename?: 'Query' }
+  & Pick<Query, 'marketDemand' | 'currentPrice' | 'modeledPrice'>
+  & { weather: (
+    { __typename?: 'Weather' }
+    & Pick<Weather, 'windSpeed'>
+  ) }
+);
+
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -312,6 +359,23 @@ export type OwnedQuery = (
   )> }
 );
 
+export type ProsumerDataQueryVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type ProsumerDataQuery = (
+  { __typename?: 'Query' }
+  & { prosumerState?: Maybe<(
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'powerConsumption' | 'powerProduction' | 'chargeRatio' | 'dischargeRatio' | 'banned' | 'blackout' | 'productionStatus' | 'nextProductionTransition'>
+    & { battery?: Maybe<(
+      { __typename?: 'Battery' }
+      & Pick<Battery, 'charge' | 'capacity'>
+    )> }
+  )> }
+);
+
 export type ProsumersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -321,27 +385,6 @@ export type ProsumersQuery = (
     { __typename?: 'Prosumer' }
     & Pick<Prosumer, 'id'>
   )> }
-);
-
-export type SimDataQueryVariables = Exact<{
-  id: Scalars['ID'];
-}>;
-
-
-export type SimDataQuery = (
-  { __typename?: 'Query' }
-  & Pick<Query, 'marketDemand' | 'currentPrice' | 'modeledPrice'>
-  & { prosumerState?: Maybe<(
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'powerConsumption' | 'powerProduction' | 'chargeRatio' | 'dischargeRatio' | 'banned' | 'blackout' | 'productionStatus' | 'nextProductionTransition'>
-    & { battery?: Maybe<(
-      { __typename?: 'Battery' }
-      & Pick<Battery, 'charge' | 'capacity'>
-    )> }
-  )>, weather: (
-    { __typename?: 'Weather' }
-    & Pick<Weather, 'windSpeed'>
-  ) }
 );
 
 
@@ -512,6 +555,109 @@ export function useSellMutation(baseOptions?: Apollo.MutationHookOptions<SellMut
 export type SellMutationHookResult = ReturnType<typeof useSellMutation>;
 export type SellMutationResult = Apollo.MutationResult<SellMutation>;
 export type SellMutationOptions = Apollo.BaseMutationOptions<SellMutation, SellMutationVariables>;
+export const SetChargeRatioDocument = gql`
+    mutation SetChargeRatio($id: ID!, $ratio: Float!) {
+  setChargeRatio(id: $id, ratio: $ratio) {
+    id
+    chargeRatio
+  }
+}
+    `;
+export type SetChargeRatioMutationFn = Apollo.MutationFunction<SetChargeRatioMutation, SetChargeRatioMutationVariables>;
+
+/**
+ * __useSetChargeRatioMutation__
+ *
+ * To run a mutation, you first call `useSetChargeRatioMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSetChargeRatioMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [setChargeRatioMutation, { data, loading, error }] = useSetChargeRatioMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      ratio: // value for 'ratio'
+ *   },
+ * });
+ */
+export function useSetChargeRatioMutation(baseOptions?: Apollo.MutationHookOptions<SetChargeRatioMutation, SetChargeRatioMutationVariables>) {
+        return Apollo.useMutation<SetChargeRatioMutation, SetChargeRatioMutationVariables>(SetChargeRatioDocument, baseOptions);
+      }
+export type SetChargeRatioMutationHookResult = ReturnType<typeof useSetChargeRatioMutation>;
+export type SetChargeRatioMutationResult = Apollo.MutationResult<SetChargeRatioMutation>;
+export type SetChargeRatioMutationOptions = Apollo.BaseMutationOptions<SetChargeRatioMutation, SetChargeRatioMutationVariables>;
+export const SetDischargeRatioDocument = gql`
+    mutation SetDischargeRatio($id: ID!, $ratio: Float!) {
+  setDischargeRatio(id: $id, ratio: $ratio) {
+    id
+    chargeRatio
+  }
+}
+    `;
+export type SetDischargeRatioMutationFn = Apollo.MutationFunction<SetDischargeRatioMutation, SetDischargeRatioMutationVariables>;
+
+/**
+ * __useSetDischargeRatioMutation__
+ *
+ * To run a mutation, you first call `useSetDischargeRatioMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSetDischargeRatioMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [setDischargeRatioMutation, { data, loading, error }] = useSetDischargeRatioMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      ratio: // value for 'ratio'
+ *   },
+ * });
+ */
+export function useSetDischargeRatioMutation(baseOptions?: Apollo.MutationHookOptions<SetDischargeRatioMutation, SetDischargeRatioMutationVariables>) {
+        return Apollo.useMutation<SetDischargeRatioMutation, SetDischargeRatioMutationVariables>(SetDischargeRatioDocument, baseOptions);
+      }
+export type SetDischargeRatioMutationHookResult = ReturnType<typeof useSetDischargeRatioMutation>;
+export type SetDischargeRatioMutationResult = Apollo.MutationResult<SetDischargeRatioMutation>;
+export type SetDischargeRatioMutationOptions = Apollo.BaseMutationOptions<SetDischargeRatioMutation, SetDischargeRatioMutationVariables>;
+export const MarketDataDocument = gql`
+    query MarketData {
+  weather {
+    windSpeed
+  }
+  marketDemand
+  currentPrice
+  modeledPrice
+}
+    `;
+
+/**
+ * __useMarketDataQuery__
+ *
+ * To run a query within a React component, call `useMarketDataQuery` and pass it any options that fit your needs.
+ * When your component renders, `useMarketDataQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useMarketDataQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useMarketDataQuery(baseOptions?: Apollo.QueryHookOptions<MarketDataQuery, MarketDataQueryVariables>) {
+        return Apollo.useQuery<MarketDataQuery, MarketDataQueryVariables>(MarketDataDocument, baseOptions);
+      }
+export function useMarketDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MarketDataQuery, MarketDataQueryVariables>) {
+          return Apollo.useLazyQuery<MarketDataQuery, MarketDataQueryVariables>(MarketDataDocument, baseOptions);
+        }
+export type MarketDataQueryHookResult = ReturnType<typeof useMarketDataQuery>;
+export type MarketDataLazyQueryHookResult = ReturnType<typeof useMarketDataLazyQuery>;
+export type MarketDataQueryResult = Apollo.QueryResult<MarketDataQuery, MarketDataQueryVariables>;
 export const MeDocument = gql`
     query Me {
   me {
@@ -584,6 +730,50 @@ export function useOwnedLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<Owne
 export type OwnedQueryHookResult = ReturnType<typeof useOwnedQuery>;
 export type OwnedLazyQueryHookResult = ReturnType<typeof useOwnedLazyQuery>;
 export type OwnedQueryResult = Apollo.QueryResult<OwnedQuery, OwnedQueryVariables>;
+export const ProsumerDataDocument = gql`
+    query ProsumerData($id: ID!) {
+  prosumerState(id: $id) {
+    powerConsumption
+    powerProduction
+    chargeRatio
+    dischargeRatio
+    banned
+    blackout
+    productionStatus
+    nextProductionTransition
+    battery {
+      charge
+      capacity
+    }
+  }
+}
+    `;
+
+/**
+ * __useProsumerDataQuery__
+ *
+ * To run a query within a React component, call `useProsumerDataQuery` and pass it any options that fit your needs.
+ * When your component renders, `useProsumerDataQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useProsumerDataQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useProsumerDataQuery(baseOptions: Apollo.QueryHookOptions<ProsumerDataQuery, ProsumerDataQueryVariables>) {
+        return Apollo.useQuery<ProsumerDataQuery, ProsumerDataQueryVariables>(ProsumerDataDocument, baseOptions);
+      }
+export function useProsumerDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProsumerDataQuery, ProsumerDataQueryVariables>) {
+          return Apollo.useLazyQuery<ProsumerDataQuery, ProsumerDataQueryVariables>(ProsumerDataDocument, baseOptions);
+        }
+export type ProsumerDataQueryHookResult = ReturnType<typeof useProsumerDataQuery>;
+export type ProsumerDataLazyQueryHookResult = ReturnType<typeof useProsumerDataLazyQuery>;
+export type ProsumerDataQueryResult = Apollo.QueryResult<ProsumerDataQuery, ProsumerDataQueryVariables>;
 export const ProsumersDocument = gql`
     query Prosumers {
   prosumerStates {
@@ -616,53 +806,3 @@ export function useProsumersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<
 export type ProsumersQueryHookResult = ReturnType<typeof useProsumersQuery>;
 export type ProsumersLazyQueryHookResult = ReturnType<typeof useProsumersLazyQuery>;
 export type ProsumersQueryResult = Apollo.QueryResult<ProsumersQuery, ProsumersQueryVariables>;
-export const SimDataDocument = gql`
-    query SimData($id: ID!) {
-  prosumerState(id: $id) {
-    powerConsumption
-    powerProduction
-    chargeRatio
-    dischargeRatio
-    banned
-    blackout
-    productionStatus
-    nextProductionTransition
-    battery {
-      charge
-      capacity
-    }
-  }
-  weather {
-    windSpeed
-  }
-  marketDemand
-  currentPrice
-  modeledPrice
-}
-    `;
-
-/**
- * __useSimDataQuery__
- *
- * To run a query within a React component, call `useSimDataQuery` and pass it any options that fit your needs.
- * When your component renders, `useSimDataQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useSimDataQuery({
- *   variables: {
- *      id: // value for 'id'
- *   },
- * });
- */
-export function useSimDataQuery(baseOptions: Apollo.QueryHookOptions<SimDataQuery, SimDataQueryVariables>) {
-        return Apollo.useQuery<SimDataQuery, SimDataQueryVariables>(SimDataDocument, baseOptions);
-      }
-export function useSimDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<SimDataQuery, SimDataQueryVariables>) {
-          return Apollo.useLazyQuery<SimDataQuery, SimDataQueryVariables>(SimDataDocument, baseOptions);
-        }
-export type SimDataQueryHookResult = ReturnType<typeof useSimDataQuery>;
-export type SimDataLazyQueryHookResult = ReturnType<typeof useSimDataLazyQuery>;
-export type SimDataQueryResult = Apollo.QueryResult<SimDataQuery, SimDataQueryVariables>;
