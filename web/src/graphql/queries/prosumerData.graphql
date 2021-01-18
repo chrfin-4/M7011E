@@ -1,4 +1,4 @@
-query SimData($id: ID!) {
+query ProsumerData($id: ID!) {
   prosumerState(id: $id) {
     powerConsumption
     powerProduction
@@ -13,10 +13,4 @@ query SimData($id: ID!) {
       capacity
     }
   }
-  weather {
-    windSpeed
-  }
-  marketDemand
-  currentPrice
-  modeledPrice
 }

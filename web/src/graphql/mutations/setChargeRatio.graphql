@@ -1,0 +1,6 @@
+mutation SetChargeRatio($id: ID!, $ratio: Float!) {
+  setChargeRatio(id: $id, ratio: $ratio) {
+    id
+    chargeRatio
+  }
+}
