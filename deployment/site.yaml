@@ -81,6 +81,8 @@
     - name: Deploy environment file
       template: src=envs dest=/home/ubuntu/envs
       become: false
+    - name: Deploy nextjs environment file
+      template: src=.env.local dest=/home/ubuntu/exerge/web/.env.local
     - name: Install nginx
       apt: name=nginx
     - name: Configure nginx
