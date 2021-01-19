@@ -56,7 +56,7 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
   function currentGlobalState() {
     return {
       date: new Date(simTime),
-      weather: weatherModel.currentWeather(simTime),
+      weather,
       electricityPrice,
       marketDemand,
       modeledPrice,
@@ -167,6 +167,7 @@ function Sim(prosumers, weatherModel=Weather({randomize: true}), t0=util.now(), 
   }
 
   function doUpdate() {
+    weather = weatherModel.currentWeather(simTime);
     // TODO: should the manager simply be one of the prosumers??
     const state = currentGlobalState();
     const { supply, demand } = getTotalSupplyAndDemand(state);
