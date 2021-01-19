@@ -17,11 +17,12 @@
 - hosts: dbservers
   become: yes
   tasks:
+    - name: Deploy environment file
+      template: src=envs dest=/home/ubuntu/envs
+      become: false
     - name: Get MongoDB pass 
       shell: "grep /home/ubuntu/envs -oPe '(?<=DB_PWD=).*' | xargs echo -n" 
       register: password
-    - name: Deploy environment file
-      template: src=envs dest=/home/ubuntu/envs
     - name: Install MongoDB package signing key
       shell: wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
     - name: Install MongoDB repository
@@ -60,14 +61,16 @@
       shell: echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
     - name: Install Yarn
       apt: name=yarn update_cache=true
-    - name: Yarn install
-      shell: yarn --cwd /home/ubuntu/exerge/simulator install
     - name: Download simulator
+      become: false
       git:
         repo: https://github.com/chrfin-4/M7011E.git
         dest: /home/ubuntu/exerge
         depth: 1
         force: yes
+    - name: Yarn install
+      shell: yarn --cwd /home/ubuntu/exerge/simulator install
+      become: false
     - name: Install simulator in systemd
       copy: src=simulator.service dest=/etc/systemd/system/exerge_sim.service
     - name: Start server
@@ -77,6 +80,7 @@
   tasks:
     - name: Deploy environment file
       template: src=envs dest=/home/ubuntu/envs
+      become: false
     - name: Install nginx
       apt: name=nginx
     - name: Configure nginx
@@ -103,15 +107,20 @@
       notify:
         - Restart Redis
     - name: Download application
+      become: false
       git:
         repo: https://github.com/chrfin-4/M7011E.git
         dest: /home/ubuntu/exerge
         depth: 1
         force: yes
-    - name: Yarn install
+    - name: Yarn install server
+      become: false
+      shell: yarn --cwd /home/ubuntu/exerge/server install
+    - name: Yarn install web
+      become: false
       shell: yarn --cwd /home/ubuntu/exerge/web install
-    - shell: yarn --cwd /home/ubuntu/exerge/server install
     - name: Build frontend
+      become: false
       shell: yarn --cwd /home/ubuntu/exerge/web build 
     - name: Install server in systemd
       copy: src=server.service dest=/etc/systemd/system/exerge.service
