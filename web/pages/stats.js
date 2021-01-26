@@ -196,7 +196,7 @@ const Stats = ({}) => {
             </TableRow>
               <TableRow className={clsx(classes.hideLastBorder)}>
                 <TableCell component="th" scope="row">Banned</TableCell>
-                <TableCell align="right">{hasHouse ? (pdState?.banDuration / 1000).toFixed(0) : "No house"}</TableCell>
+                <TableCell align="right">{hasHouse ? (pState?.banDuration / 1000).toFixed(0) : "No house"}</TableCell>
               </TableRow>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Blackout</TableCell>
