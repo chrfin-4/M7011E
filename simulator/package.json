@@ -22,10 +22,10 @@
     "express-graphql": "^0.12.0",
     "graphql": "^15.4.0",
     "graphql-tools": "^7.0.2",
-    "mongoose": "^5.11.8"
+    "mongoose": "^5.11.13"
   },
   "devDependencies": {
-    "jasmine": "^3.6.3",
+    "jasmine": "^3.6.4",
     "nodemon": "^2.0.6"
   },
   "description": ""

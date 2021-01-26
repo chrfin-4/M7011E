@@ -1,5 +1,4 @@
 import React from 'react'
-import { Wrapper } from "../components/Wrapper";
 import { useApolloClient } from '@apollo/client';
 import { useMeQuery, useCreateUserMutation, MeDocument } from "../src/generated/graphql.ts";
 import { toErrorMap } from "../src/utils/toErrorMap";
@@ -18,8 +17,13 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton} from '@material-ui/lab';
+import { withNoAuthentication } from '../src/utils/withAuthentication';
 
 const useStyles = makeStyles((theme) => ({
+  form: {
+    maxWidth: 100,
+    justifyContent: "center"
+  },
   formField: {
     marginTop: 8
   }
@@ -35,7 +39,10 @@ const Register = ({}) => {
   });
 
   // Redirect if already signed in
-  if (typeof window !== 'undefined') {
+  if (typeof window === 'undefined') {
+    if (data?.me) return null;
+  }
+  else {
     if (loading) {
     } else if (data?.me) {
       router.push("/overview")
@@ -43,9 +50,9 @@ const Register = ({}) => {
   }
 
   return (
-    <Wrapper variant="small">
+    <Box className={clsx(classes.form)}>
       <Formik
-        initialValues={{ email: "", password: "", type: "0" }}
+        initialValues={{ name: "", email: "", password: "", type: "1" }}
         onSubmit={async (values, { setErrors }) => {
           const response = await register({
             variables: { userInput: values },
@@ -69,12 +76,21 @@ const Register = ({}) => {
       >
         {({ isSubmitting }) => (
           <Form>
-            <Field
-              component={TextField}
-              name="email"
-              label="Email"
-              id="email"
-            />
+            <Box className={clsx(classes.formField)}>
+              <Field
+                component={TextField}
+                name="name"
+                label="Name"
+              />
+            </Box>
+            <Box className={clsx(classes.formField)}>
+              <Field
+                component={TextField}
+                name="email"
+                label="Email"
+                id="email"
+              />
+            </Box>
             <Box className={clsx(classes.formField)}>
               <Field
                 component={TextField}
@@ -86,12 +102,14 @@ const Register = ({}) => {
             </Box>
             <Box className={clsx(classes.formField)}>
                   <Field label="Type of user" component={RadioGroup} name="type">
+                    {/*
                     <FormControlLabel
                       control={<Radio disabled={isSubmitting}/>}
                       label="Consumer"
                       value="0"
                       disabled={isSubmitting}
                     />
+                    */}
                     <FormControlLabel
                       control={<Radio disabled={isSubmitting}/>}
                       label="Prosumer"
@@ -116,7 +134,7 @@ const Register = ({}) => {
           </Form>
         )}
       </Formik>
-    </Wrapper>
+    </Box>
   );
 };
 

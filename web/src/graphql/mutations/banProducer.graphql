@@ -1,0 +1,5 @@
+mutation BanProducer($id: ID!, $duration: Int!) {
+  banProducer(id: $id, duration: $duration) {
+    banned
+  }
+}

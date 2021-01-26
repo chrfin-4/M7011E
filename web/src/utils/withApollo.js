@@ -1,8 +1,9 @@
-import { createWithApollo } from "./createWithApollo";
+// import { createWithApollo } from "./createWithApollo";
+import { withApollo as createWithApollo } from "next-apollo"
 import { ApolloClient, InMemoryCache } from "@apollo/client";
 
-const createClient = (ctx) =>
-  new ApolloClient({
+const createClient = (ctx) => {
+  return new ApolloClient({
     uri: process.env.NEXT_PUBLIC_API_URL,
     credentials: "include",
     headers: {
@@ -20,5 +21,6 @@ const createClient = (ctx) =>
       },
     }),
   });
+};
 
 export const withApollo = createWithApollo(createClient);

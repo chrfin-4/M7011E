@@ -1,0 +1,5 @@
+query HasBlackout {
+  hasBlackout: prosumerStates {
+    blackout
+  }
+}

@@ -106,6 +106,15 @@ export const NavBar = ({}) => {
                       Statistics
                   </Button>
                 </NextLink>
+                {data.me.type >= 2 ?
+                (
+                  <NextLink href="/admin" >
+                    <Button variant="contained" disableElevation className={clsx(classes.linkButton)}>
+                        Admin
+                    </Button>
+                  </NextLink>
+                ) : null
+                }
                 <Box className={clsx(classes.filler)}/>
                 <LoadingButton
                   variant="contained" disableElevation className={clsx(classes.linkButton)}
@@ -128,7 +137,5 @@ export const NavBar = ({}) => {
     </React.Fragment>
   );
 
-  return (
-    <Box id="root" sx={{ mb: 4 }} >{body}</Box>
-  );
+  return (<Box id="root" sx={{ mb: 4 }} >{body}</Box>);
 };

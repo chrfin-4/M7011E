@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { withApollo } from "../src/utils/withApollo";
 import { useApolloClient } from '@apollo/client';
 import { isServer } from '../src/utils/isServer';
+import { useRouter } from 'next/router';
 
 import { 
   useMeQuery, 
@@ -41,6 +42,7 @@ import { TextField } from 'formik-material-ui';
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
 import { Field, Form, Formik } from 'formik';
+import { withAuthentication } from '../src/utils/withAuthentication';
 
 const useStyles = makeStyles((theme) => ({
   manage: {
@@ -49,6 +51,7 @@ const useStyles = makeStyles((theme) => ({
   paper: {
     padding: theme.spacing(2),
     margin: 'auto',
+    maxWidth: '700px',
   },
   actionPaper: {
     maxWidth: 230
@@ -123,7 +126,7 @@ BatteryRow.propTypes = {
 
 const Stats = ({}) => {
   const classes = useStyles();
-  const apolloClient = useApolloClient();
+  const router = useRouter();
   const [setChargeRatio] = useSetChargeRatioMutation();
   const [setDischargeRatio] = useSetDischargeRatioMutation();
 
@@ -131,16 +134,35 @@ const Stats = ({}) => {
     skip: isServer(),
   });
 
+  const skip1 = isServer() || meData?.me === undefined || meData?.me === null || meData.me.prosumerData.houseId === null;
+  const skip2 = isServer() || meData?.me === undefined || meData?.me === null;
+
   const { data: psData, loading: psLoading } = useProsumerDataQuery({
-    variables: { id: meData?.me.prosumerData.houseId },
-    skip: meData === undefined,
+    fetchPolicy: skip1 ? 'cache-only' : 'cache-and-network',
+    variables: { id: meData?.me?.prosumerData.houseId },
+    skip: skip1,
     pollInterval: 1000,
   });
 
   const { data: mdData, loading: mdLoading } = useMarketDataQuery({
-    skip: meData === undefined,
+    fetchPolicy: skip2 ? 'cache-only' : 'cache-and-network',
+    skip: skip2,
     pollInterval: 1000,
   });
+
+  if (meLoading) return null;
+
+  if (isServer()) { // Serverside
+    if (!meData?.me || meData.me === null) return null; // If not signed in
+    if (!meData?.me.type >= 1) return null; // If not admin
+  }
+  else { // Client side
+    if (!meData?.me || meData.me === null) {
+      router.push("/login"); // If not signed in
+      return null;
+    }
+    if (!meData?.me.type >= 1) return null; // If not admin
+  }
 
   let houseBody = null;
   let weatherBody = null;
@@ -148,10 +170,13 @@ const Stats = ({}) => {
   let manageBody = null;
 
   if (meLoading || psLoading || mdLoading) {
-  } else if (meData?.me) {
+    if (!meData || !psData || !mdData) return null;
+  }
+
+  if (meData?.me) {
     let hasHouse = meData.me?.prosumerData.houseId !== undefined && meData.me?.prosumerData.houseId !== null;
     let pState = psData?.prosumerState;
-    let weather = mdData?.weather;
+    let weather = mdData.weather;
     houseBody = (
       <TableContainer component={Paper} className={clsx(classes.paper)}>
         <Typography variant="h6">
@@ -166,12 +191,28 @@ const Stats = ({}) => {
           </TableHead>
           <TableBody>
             <TableRow className={clsx(classes.hideLastBorder)}>
-              <TableCell component="th" scope="row">Power consumption</TableCell>
-              <TableCell align="right">{hasHouse ? pState.powerConsumption.toFixed(3) : "No house"}</TableCell>
+              <TableCell component="th" scope="row">Banned</TableCell>
+              <TableCell align="right">{hasHouse ? (pState.banned ? "BANNED" : "No") : "No house"}</TableCell>
+            </TableRow>
+              <TableRow className={clsx(classes.hideLastBorder)}>
+                <TableCell component="th" scope="row">Banned</TableCell>
+                <TableCell align="right">{hasHouse ? (pdState?.banDuration / 1000).toFixed(0) : "No house"}</TableCell>
+              </TableRow>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Blackout</TableCell>
+              <TableCell align="right">{hasHouse ? (pState.blackout ? "BLACKOUT" : "No") : "No house"}</TableCell>
             </TableRow>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Power production</TableCell>
               <TableCell align="right">{hasHouse ? pState.powerProduction.toFixed(3) : "No house"}</TableCell>
+            </TableRow>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Power consumption</TableCell>
+              <TableCell align="right">{hasHouse ? pState.powerConsumption.toFixed(3) : "No house"}</TableCell>
+            </TableRow>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Net production</TableCell>
+              <TableCell align="right">{hasHouse ? (pState.powerProduction - pState.powerConsumption).toFixed(3) : "No house"}</TableCell>
             </TableRow>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Charge ratio</TableCell>
@@ -180,10 +221,6 @@ const Stats = ({}) => {
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Discharge ratio</TableCell>
               <TableCell align="right">{hasHouse ? pState.dischargeRatio.toFixed(3) : "No house"}</TableCell>
-            </TableRow>
-            <TableRow className={clsx(classes.hideLastBorder)}>
-              <TableCell component="th" scope="row">Production status [remove me?]</TableCell>
-              <TableCell align="right">{hasHouse ? pState.productionStatus.toFixed(3) : "No house"}</TableCell>
             </TableRow>
             {hasHouse ? (
               <BatteryRow charge={pState.battery.charge} capacity={pState.battery.capacity}/>
@@ -253,7 +290,7 @@ const Stats = ({}) => {
           Manage
         </Typography>
         <Grid container spacing={2} justifyContent="flex-start">
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} sm={6}>
             <Paper className={clsx(classes.paper, classes.actionPaper)}>
               <Typography variant="h6" gutterBottom>
                 Set charge ratio
@@ -272,17 +309,16 @@ const Stats = ({}) => {
                 {({ isSubmitting }) => (
                   <Form>
                     <Grid container spacing={1} alignItems="center">
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={6}>
                         <Field
                           component={TextField}
                           name="ratio"
                           type="number"
                           label="Ratio"
-                          defaultValue={0.4}
                           inputProps={{ min: 0, max: 1, step: 0.001 }}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={6}>
                         <LoadingButton
                           size="small"
                           type="submit"
@@ -299,7 +335,7 @@ const Stats = ({}) => {
               </Formik>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} sm={6}>
             <Paper className={clsx(classes.paper, classes.actionPaper)}>
               <Typography variant="h6" gutterBottom>
                 Set discharge ratio
@@ -318,17 +354,16 @@ const Stats = ({}) => {
                 {({ isSubmitting }) => (
                   <Form>
                     <Grid container spacing={1} alignItems="center">
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={6}>
                         <Field
                           component={TextField}
                           name="ratio"
                           type="number"
                           label="Ratio"
-                          defaultValue={0.4}
                           inputProps={{ min: 0, max: 1, step: 0.001 }}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={6}>
                         <LoadingButton
                           size="small"
                           type="submit"
@@ -353,7 +388,7 @@ const Stats = ({}) => {
   return (
     <Box sx={{ overflow: "hidden", mx: 2 }}>
       <Grid container spacing={2} justifyContent="center" >
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} lg={8}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>{houseBody}</Grid>
             <Grid item xs={12} md={6}>
@@ -368,7 +403,7 @@ const Stats = ({}) => {
             </Grid>
           </Grid>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} lg={4}>
           <Box sx={{ display: "grid", gap: 8, gridAutoFlow: "row" }}>
             <Box>{manageBody}</Box>
           </Box>

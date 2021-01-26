@@ -1,11 +1,10 @@
-query ProsumerData($id: ID!) {
-  prosumerState(id: $id) {
+query ProsumersData {
+  prosumerStates {
     powerConsumption
     powerProduction
     chargeRatio
     dischargeRatio
     banned
-    banDuration
     blackout
     productionStatus
     nextProductionTransition

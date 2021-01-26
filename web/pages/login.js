@@ -7,13 +7,14 @@ import { toErrorMap } from "../src/utils/toErrorMap";
 import { useRouter } from "next/router";
 import { withApollo } from "../src/utils/withApollo";
 import { TextField } from 'formik-material-ui';
-import { isServer } from "../src/utils/isServer";
 
 import { 
   Box,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton} from '@material-ui/lab';
+import { withNoAuthentication } from "../src/utils/withAuthentication";
+import { isServer } from "../src/utils/isServer";
 
 const useStyles = makeStyles((theme) => ({
   wrapper: {
@@ -25,22 +26,27 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-
-const Login = ({}) => {
+const Login = () => {
   const classes = useStyles();
   const router = useRouter();
   const [login] = useLoginMutation();
   const apolloClient = useApolloClient();
-  const { data, loading } = useMeQuery({
-    skip: isServer(),
+
+  const { meData, meLoading } = useMeQuery({
+    skip: isServer()
   });
 
-  // Redirect if already signed in
-  if (typeof window !== 'undefined') {
-    if (loading) {
-    } else if (data?.me) {
-      router.push("/overview")
-    }
+  if (meLoading) return null;
+  if (isServer()) { // Serverside
+    if (meData?.me) return null; // If not signed in
+    if (meData?.me.type >= 2) return null; // If not admin
+  }
+  else { // Client side
+    if (meData?.me) {
+      router.push("/overview");
+      return null;
+    } // If not signed in
+    if (meData?.me.type >= 2) return null; // If not admin
   }
 
   return (
@@ -113,4 +119,4 @@ const Login = ({}) => {
   );
 };
 
-export default withApollo({ ssr: false })(Login);
+export default withApollo({ ssr: true })(Login);

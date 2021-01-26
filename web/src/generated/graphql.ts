@@ -15,6 +15,7 @@ export type Scalars = {
 
 export type Query = {
   __typename?: 'Query';
+  online: Array<User>;
   users: Array<User>;
   user?: Maybe<User>;
   me?: Maybe<User>;
@@ -40,6 +41,7 @@ export type QueryProsumerStateArgs = {
 export type Mutation = {
   __typename?: 'Mutation';
   createUser: UserResponse;
+  deleteUser?: Maybe<Scalars['Boolean']>;
   login: UserResponse;
   logout?: Maybe<Scalars['Boolean']>;
   assignProsumer?: Maybe<Scalars['Boolean']>;
@@ -60,6 +62,11 @@ export type Mutation = {
 
 export type MutationCreateUserArgs = {
   userInput?: Maybe<UserInput>;
+};
+
+
+export type MutationDeleteUserArgs = {
+  userId: Scalars['String'];
 };
 
 
@@ -140,6 +147,7 @@ export type FieldError = {
 export type User = {
   __typename?: 'User';
   _id?: Maybe<Scalars['ID']>;
+  name: Scalars['String'];
   email: Scalars['String'];
   password?: Maybe<Scalars['String']>;
   type: Scalars['Int'];
@@ -171,6 +179,7 @@ export type Powerplant = {
 };
 
 export type UserInput = {
+  name: Scalars['String'];
   email: Scalars['String'];
   password: Scalars['String'];
   type: Scalars['String'];
@@ -225,6 +234,20 @@ export type Simulation = {
   prosumers: Scalars['Int'];
 };
 
+export type BanProducerMutationVariables = Exact<{
+  id: Scalars['ID'];
+  duration: Scalars['Int'];
+}>;
+
+
+export type BanProducerMutation = (
+  { __typename?: 'Mutation' }
+  & { banProducer: (
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'banned'>
+  ) }
+);
+
 export type CreateUserMutationVariables = Exact<{
   userInput?: Maybe<UserInput>;
 }>;
@@ -242,6 +265,16 @@ export type CreateUserMutation = (
       & Pick<User, '_id' | 'email'>
     )> }
   ) }
+);
+
+export type DeleteUserMutationVariables = Exact<{
+  userId: Scalars['String'];
+}>;
+
+
+export type DeleteUserMutation = (
+  { __typename?: 'Mutation' }
+  & Pick<Mutation, 'deleteUser'>
 );
 
 export type LoginMutationVariables = Exact<{
@@ -318,6 +351,80 @@ export type SetDischargeRatioMutation = (
   ) }
 );
 
+export type SetElectricityPriceMutationVariables = Exact<{
+  price: Scalars['Float'];
+}>;
+
+
+export type SetElectricityPriceMutation = (
+  { __typename?: 'Mutation' }
+  & { setElectricityPrice: (
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'powerProduction'>
+  ) }
+);
+
+export type SetProductionLevelMutationVariables = Exact<{
+  percent: Scalars['Int'];
+}>;
+
+
+export type SetProductionLevelMutation = (
+  { __typename?: 'Mutation' }
+  & { setProductionLevel: (
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'id' | 'productionStatus' | 'nextProductionTransition'>
+  ) }
+);
+
+export type TurnProductionOffMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type TurnProductionOffMutation = (
+  { __typename?: 'Mutation' }
+  & { turnProductionOff: (
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'powerProduction'>
+  ) }
+);
+
+export type TurnProductionOnMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type TurnProductionOnMutation = (
+  { __typename?: 'Mutation' }
+  & { turnProductionOn: (
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'powerProduction'>
+  ) }
+);
+
+export type HasBlackoutQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type HasBlackoutQuery = (
+  { __typename?: 'Query' }
+  & { hasBlackout: Array<(
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'blackout'>
+  )> }
+);
+
+export type ManagerDataQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ManagerDataQuery = (
+  { __typename?: 'Query' }
+  & { managerState?: Maybe<(
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'powerConsumption' | 'powerProduction' | 'chargeRatio' | 'banned' | 'productionStatus' | 'nextProductionTransition'>
+    & { battery?: Maybe<(
+      { __typename?: 'Battery' }
+      & Pick<Battery, 'charge' | 'capacity'>
+    )> }
+  )> }
+);
+
 export type MarketDataQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -345,6 +452,17 @@ export type MeQuery = (
   )> }
 );
 
+export type OnlineQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type OnlineQuery = (
+  { __typename?: 'Query' }
+  & { online: Array<(
+    { __typename?: 'User' }
+    & Pick<User, '_id'>
+  )> }
+);
+
 export type OwnedQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -352,9 +470,10 @@ export type OwnedQuery = (
   { __typename?: 'Query' }
   & { users: Array<(
     { __typename?: 'User' }
+    & Pick<User, '_id' | 'name' | 'type'>
     & { prosumerData?: Maybe<(
       { __typename?: 'ProsumerData' }
-      & Pick<ProsumerData, 'houseId'>
+      & Pick<ProsumerData, 'houseId' | 'banned'>
     )> }
   )> }
 );
@@ -368,7 +487,7 @@ export type ProsumerDataQuery = (
   { __typename?: 'Query' }
   & { prosumerState?: Maybe<(
     { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'powerConsumption' | 'powerProduction' | 'chargeRatio' | 'dischargeRatio' | 'banned' | 'blackout' | 'productionStatus' | 'nextProductionTransition'>
+    & Pick<Prosumer, 'powerConsumption' | 'powerProduction' | 'chargeRatio' | 'dischargeRatio' | 'banned' | 'banDuration' | 'blackout' | 'productionStatus' | 'nextProductionTransition'>
     & { battery?: Maybe<(
       { __typename?: 'Battery' }
       & Pick<Battery, 'charge' | 'capacity'>
@@ -387,7 +506,55 @@ export type ProsumersQuery = (
   )> }
 );
 
+export type ProsumersDataQueryVariables = Exact<{ [key: string]: never; }>;
 
+
+export type ProsumersDataQuery = (
+  { __typename?: 'Query' }
+  & { prosumerStates: Array<(
+    { __typename?: 'Prosumer' }
+    & Pick<Prosumer, 'powerConsumption' | 'powerProduction' | 'chargeRatio' | 'dischargeRatio' | 'banned' | 'blackout' | 'productionStatus' | 'nextProductionTransition'>
+    & { battery?: Maybe<(
+      { __typename?: 'Battery' }
+      & Pick<Battery, 'charge' | 'capacity'>
+    )> }
+  )> }
+);
+
+
+export const BanProducerDocument = gql`
+    mutation BanProducer($id: ID!, $duration: Int!) {
+  banProducer(id: $id, duration: $duration) {
+    banned
+  }
+}
+    `;
+export type BanProducerMutationFn = Apollo.MutationFunction<BanProducerMutation, BanProducerMutationVariables>;
+
+/**
+ * __useBanProducerMutation__
+ *
+ * To run a mutation, you first call `useBanProducerMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useBanProducerMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [banProducerMutation, { data, loading, error }] = useBanProducerMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      duration: // value for 'duration'
+ *   },
+ * });
+ */
+export function useBanProducerMutation(baseOptions?: Apollo.MutationHookOptions<BanProducerMutation, BanProducerMutationVariables>) {
+        return Apollo.useMutation<BanProducerMutation, BanProducerMutationVariables>(BanProducerDocument, baseOptions);
+      }
+export type BanProducerMutationHookResult = ReturnType<typeof useBanProducerMutation>;
+export type BanProducerMutationResult = Apollo.MutationResult<BanProducerMutation>;
+export type BanProducerMutationOptions = Apollo.BaseMutationOptions<BanProducerMutation, BanProducerMutationVariables>;
 export const CreateUserDocument = gql`
     mutation CreateUser($userInput: UserInput) {
   createUser(userInput: $userInput) {
@@ -427,6 +594,36 @@ export function useCreateUserMutation(baseOptions?: Apollo.MutationHookOptions<C
 export type CreateUserMutationHookResult = ReturnType<typeof useCreateUserMutation>;
 export type CreateUserMutationResult = Apollo.MutationResult<CreateUserMutation>;
 export type CreateUserMutationOptions = Apollo.BaseMutationOptions<CreateUserMutation, CreateUserMutationVariables>;
+export const DeleteUserDocument = gql`
+    mutation DeleteUser($userId: String!) {
+  deleteUser(userId: $userId)
+}
+    `;
+export type DeleteUserMutationFn = Apollo.MutationFunction<DeleteUserMutation, DeleteUserMutationVariables>;
+
+/**
+ * __useDeleteUserMutation__
+ *
+ * To run a mutation, you first call `useDeleteUserMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteUserMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteUserMutation, { data, loading, error }] = useDeleteUserMutation({
+ *   variables: {
+ *      userId: // value for 'userId'
+ *   },
+ * });
+ */
+export function useDeleteUserMutation(baseOptions?: Apollo.MutationHookOptions<DeleteUserMutation, DeleteUserMutationVariables>) {
+        return Apollo.useMutation<DeleteUserMutation, DeleteUserMutationVariables>(DeleteUserDocument, baseOptions);
+      }
+export type DeleteUserMutationHookResult = ReturnType<typeof useDeleteUserMutation>;
+export type DeleteUserMutationResult = Apollo.MutationResult<DeleteUserMutation>;
+export type DeleteUserMutationOptions = Apollo.BaseMutationOptions<DeleteUserMutation, DeleteUserMutationVariables>;
 export const LoginDocument = gql`
     mutation Login($email: String!, $password: String!) {
   login(email: $email, password: $password) {
@@ -623,6 +820,207 @@ export function useSetDischargeRatioMutation(baseOptions?: Apollo.MutationHookOp
 export type SetDischargeRatioMutationHookResult = ReturnType<typeof useSetDischargeRatioMutation>;
 export type SetDischargeRatioMutationResult = Apollo.MutationResult<SetDischargeRatioMutation>;
 export type SetDischargeRatioMutationOptions = Apollo.BaseMutationOptions<SetDischargeRatioMutation, SetDischargeRatioMutationVariables>;
+export const SetElectricityPriceDocument = gql`
+    mutation setElectricityPrice($price: Float!) {
+  setElectricityPrice(id: -1, price: $price) {
+    powerProduction
+  }
+}
+    `;
+export type SetElectricityPriceMutationFn = Apollo.MutationFunction<SetElectricityPriceMutation, SetElectricityPriceMutationVariables>;
+
+/**
+ * __useSetElectricityPriceMutation__
+ *
+ * To run a mutation, you first call `useSetElectricityPriceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSetElectricityPriceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [setElectricityPriceMutation, { data, loading, error }] = useSetElectricityPriceMutation({
+ *   variables: {
+ *      price: // value for 'price'
+ *   },
+ * });
+ */
+export function useSetElectricityPriceMutation(baseOptions?: Apollo.MutationHookOptions<SetElectricityPriceMutation, SetElectricityPriceMutationVariables>) {
+        return Apollo.useMutation<SetElectricityPriceMutation, SetElectricityPriceMutationVariables>(SetElectricityPriceDocument, baseOptions);
+      }
+export type SetElectricityPriceMutationHookResult = ReturnType<typeof useSetElectricityPriceMutation>;
+export type SetElectricityPriceMutationResult = Apollo.MutationResult<SetElectricityPriceMutation>;
+export type SetElectricityPriceMutationOptions = Apollo.BaseMutationOptions<SetElectricityPriceMutation, SetElectricityPriceMutationVariables>;
+export const SetProductionLevelDocument = gql`
+    mutation SetProductionLevel($percent: Int!) {
+  setProductionLevel(id: -1, percent: $percent) {
+    id
+    productionStatus
+    nextProductionTransition
+  }
+}
+    `;
+export type SetProductionLevelMutationFn = Apollo.MutationFunction<SetProductionLevelMutation, SetProductionLevelMutationVariables>;
+
+/**
+ * __useSetProductionLevelMutation__
+ *
+ * To run a mutation, you first call `useSetProductionLevelMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSetProductionLevelMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [setProductionLevelMutation, { data, loading, error }] = useSetProductionLevelMutation({
+ *   variables: {
+ *      percent: // value for 'percent'
+ *   },
+ * });
+ */
+export function useSetProductionLevelMutation(baseOptions?: Apollo.MutationHookOptions<SetProductionLevelMutation, SetProductionLevelMutationVariables>) {
+        return Apollo.useMutation<SetProductionLevelMutation, SetProductionLevelMutationVariables>(SetProductionLevelDocument, baseOptions);
+      }
+export type SetProductionLevelMutationHookResult = ReturnType<typeof useSetProductionLevelMutation>;
+export type SetProductionLevelMutationResult = Apollo.MutationResult<SetProductionLevelMutation>;
+export type SetProductionLevelMutationOptions = Apollo.BaseMutationOptions<SetProductionLevelMutation, SetProductionLevelMutationVariables>;
+export const TurnProductionOffDocument = gql`
+    mutation TurnProductionOff {
+  turnProductionOff(id: -1) {
+    powerProduction
+  }
+}
+    `;
+export type TurnProductionOffMutationFn = Apollo.MutationFunction<TurnProductionOffMutation, TurnProductionOffMutationVariables>;
+
+/**
+ * __useTurnProductionOffMutation__
+ *
+ * To run a mutation, you first call `useTurnProductionOffMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useTurnProductionOffMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [turnProductionOffMutation, { data, loading, error }] = useTurnProductionOffMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useTurnProductionOffMutation(baseOptions?: Apollo.MutationHookOptions<TurnProductionOffMutation, TurnProductionOffMutationVariables>) {
+        return Apollo.useMutation<TurnProductionOffMutation, TurnProductionOffMutationVariables>(TurnProductionOffDocument, baseOptions);
+      }
+export type TurnProductionOffMutationHookResult = ReturnType<typeof useTurnProductionOffMutation>;
+export type TurnProductionOffMutationResult = Apollo.MutationResult<TurnProductionOffMutation>;
+export type TurnProductionOffMutationOptions = Apollo.BaseMutationOptions<TurnProductionOffMutation, TurnProductionOffMutationVariables>;
+export const TurnProductionOnDocument = gql`
+    mutation TurnProductionOn {
+  turnProductionOn(id: -1) {
+    powerProduction
+  }
+}
+    `;
+export type TurnProductionOnMutationFn = Apollo.MutationFunction<TurnProductionOnMutation, TurnProductionOnMutationVariables>;
+
+/**
+ * __useTurnProductionOnMutation__
+ *
+ * To run a mutation, you first call `useTurnProductionOnMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useTurnProductionOnMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [turnProductionOnMutation, { data, loading, error }] = useTurnProductionOnMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useTurnProductionOnMutation(baseOptions?: Apollo.MutationHookOptions<TurnProductionOnMutation, TurnProductionOnMutationVariables>) {
+        return Apollo.useMutation<TurnProductionOnMutation, TurnProductionOnMutationVariables>(TurnProductionOnDocument, baseOptions);
+      }
+export type TurnProductionOnMutationHookResult = ReturnType<typeof useTurnProductionOnMutation>;
+export type TurnProductionOnMutationResult = Apollo.MutationResult<TurnProductionOnMutation>;
+export type TurnProductionOnMutationOptions = Apollo.BaseMutationOptions<TurnProductionOnMutation, TurnProductionOnMutationVariables>;
+export const HasBlackoutDocument = gql`
+    query HasBlackout {
+  hasBlackout: prosumerStates {
+    blackout
+  }
+}
+    `;
+
+/**
+ * __useHasBlackoutQuery__
+ *
+ * To run a query within a React component, call `useHasBlackoutQuery` and pass it any options that fit your needs.
+ * When your component renders, `useHasBlackoutQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useHasBlackoutQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useHasBlackoutQuery(baseOptions?: Apollo.QueryHookOptions<HasBlackoutQuery, HasBlackoutQueryVariables>) {
+        return Apollo.useQuery<HasBlackoutQuery, HasBlackoutQueryVariables>(HasBlackoutDocument, baseOptions);
+      }
+export function useHasBlackoutLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<HasBlackoutQuery, HasBlackoutQueryVariables>) {
+          return Apollo.useLazyQuery<HasBlackoutQuery, HasBlackoutQueryVariables>(HasBlackoutDocument, baseOptions);
+        }
+export type HasBlackoutQueryHookResult = ReturnType<typeof useHasBlackoutQuery>;
+export type HasBlackoutLazyQueryHookResult = ReturnType<typeof useHasBlackoutLazyQuery>;
+export type HasBlackoutQueryResult = Apollo.QueryResult<HasBlackoutQuery, HasBlackoutQueryVariables>;
+export const ManagerDataDocument = gql`
+    query ManagerData {
+  managerState: prosumerState(id: -1) {
+    powerConsumption
+    powerProduction
+    chargeRatio
+    banned
+    productionStatus
+    nextProductionTransition
+    battery {
+      charge
+      capacity
+    }
+  }
+}
+    `;
+
+/**
+ * __useManagerDataQuery__
+ *
+ * To run a query within a React component, call `useManagerDataQuery` and pass it any options that fit your needs.
+ * When your component renders, `useManagerDataQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useManagerDataQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useManagerDataQuery(baseOptions?: Apollo.QueryHookOptions<ManagerDataQuery, ManagerDataQueryVariables>) {
+        return Apollo.useQuery<ManagerDataQuery, ManagerDataQueryVariables>(ManagerDataDocument, baseOptions);
+      }
+export function useManagerDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ManagerDataQuery, ManagerDataQueryVariables>) {
+          return Apollo.useLazyQuery<ManagerDataQuery, ManagerDataQueryVariables>(ManagerDataDocument, baseOptions);
+        }
+export type ManagerDataQueryHookResult = ReturnType<typeof useManagerDataQuery>;
+export type ManagerDataLazyQueryHookResult = ReturnType<typeof useManagerDataLazyQuery>;
+export type ManagerDataQueryResult = Apollo.QueryResult<ManagerDataQuery, ManagerDataQueryVariables>;
 export const MarketDataDocument = gql`
     query MarketData {
   weather {
@@ -696,11 +1094,47 @@ export function useMeLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MeQuery
 export type MeQueryHookResult = ReturnType<typeof useMeQuery>;
 export type MeLazyQueryHookResult = ReturnType<typeof useMeLazyQuery>;
 export type MeQueryResult = Apollo.QueryResult<MeQuery, MeQueryVariables>;
+export const OnlineDocument = gql`
+    query Online {
+  online {
+    _id
+  }
+}
+    `;
+
+/**
+ * __useOnlineQuery__
+ *
+ * To run a query within a React component, call `useOnlineQuery` and pass it any options that fit your needs.
+ * When your component renders, `useOnlineQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useOnlineQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useOnlineQuery(baseOptions?: Apollo.QueryHookOptions<OnlineQuery, OnlineQueryVariables>) {
+        return Apollo.useQuery<OnlineQuery, OnlineQueryVariables>(OnlineDocument, baseOptions);
+      }
+export function useOnlineLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OnlineQuery, OnlineQueryVariables>) {
+          return Apollo.useLazyQuery<OnlineQuery, OnlineQueryVariables>(OnlineDocument, baseOptions);
+        }
+export type OnlineQueryHookResult = ReturnType<typeof useOnlineQuery>;
+export type OnlineLazyQueryHookResult = ReturnType<typeof useOnlineLazyQuery>;
+export type OnlineQueryResult = Apollo.QueryResult<OnlineQuery, OnlineQueryVariables>;
 export const OwnedDocument = gql`
     query Owned {
   users {
+    _id
+    name
+    type
     prosumerData {
       houseId
+      banned
     }
   }
 }
@@ -738,6 +1172,7 @@ export const ProsumerDataDocument = gql`
     chargeRatio
     dischargeRatio
     banned
+    banDuration
     blackout
     productionStatus
     nextProductionTransition
@@ -806,3 +1241,46 @@ export function useProsumersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<
 export type ProsumersQueryHookResult = ReturnType<typeof useProsumersQuery>;
 export type ProsumersLazyQueryHookResult = ReturnType<typeof useProsumersLazyQuery>;
 export type ProsumersQueryResult = Apollo.QueryResult<ProsumersQuery, ProsumersQueryVariables>;
+export const ProsumersDataDocument = gql`
+    query ProsumersData {
+  prosumerStates {
+    powerConsumption
+    powerProduction
+    chargeRatio
+    dischargeRatio
+    banned
+    blackout
+    productionStatus
+    nextProductionTransition
+    battery {
+      charge
+      capacity
+    }
+  }
+}
+    `;
+
+/**
+ * __useProsumersDataQuery__
+ *
+ * To run a query within a React component, call `useProsumersDataQuery` and pass it any options that fit your needs.
+ * When your component renders, `useProsumersDataQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useProsumersDataQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useProsumersDataQuery(baseOptions?: Apollo.QueryHookOptions<ProsumersDataQuery, ProsumersDataQueryVariables>) {
+        return Apollo.useQuery<ProsumersDataQuery, ProsumersDataQueryVariables>(ProsumersDataDocument, baseOptions);
+      }
+export function useProsumersDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProsumersDataQuery, ProsumersDataQueryVariables>) {
+          return Apollo.useLazyQuery<ProsumersDataQuery, ProsumersDataQueryVariables>(ProsumersDataDocument, baseOptions);
+        }
+export type ProsumersDataQueryHookResult = ReturnType<typeof useProsumersDataQuery>;
+export type ProsumersDataLazyQueryHookResult = ReturnType<typeof useProsumersDataLazyQuery>;
+export type ProsumersDataQueryResult = Apollo.QueryResult<ProsumersDataQuery, ProsumersDataQueryVariables>;

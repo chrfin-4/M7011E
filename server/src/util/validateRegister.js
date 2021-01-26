@@ -1,5 +1,16 @@
 module.exports = {
   validateRegister: (options) => {
+    if (options.name.length <= 2) {
+      return {
+        errors: [
+          {
+            field: "name",
+            message: "length must be greater than 0",
+          },
+        ]
+      };
+    }
+
     if (!options.email.includes("@")) {
       return {
         errors: [

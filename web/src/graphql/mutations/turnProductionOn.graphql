@@ -1,0 +1,5 @@
+mutation TurnProductionOn {
+  turnProductionOn(id: -1) {
+    powerProduction
+  }
+}

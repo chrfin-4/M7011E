@@ -1,4 +1,5 @@
 type Query {
+  online: [User!]!
   users: [User!]!
   user(id: ID!): User
 
@@ -7,6 +8,7 @@ type Query {
 
 type Mutation {
   createUser(userInput: UserInput): UserResponse!
+  deleteUser(userId: String!): Boolean
   login(email: String!, password: String!): UserResponse!
   logout: Boolean
 
@@ -21,6 +23,7 @@ type FieldError {
 
 type User {
   _id: ID
+  name: String!
   email: String!
   password: String
   type: Int!
@@ -48,6 +51,7 @@ type Powerplant {
 }
 
 input UserInput {
+  name: String!
   email: String!
   password: String!
   type: String!

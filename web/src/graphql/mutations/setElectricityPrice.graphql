@@ -1,0 +1,5 @@
+mutation setElectricityPrice($price: Float!) {
+  setElectricityPrice(id: -1, price: $price) {
+    powerProduction
+  }
+}

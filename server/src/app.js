@@ -1,9 +1,7 @@
 const { __prod__, COOKIE_NAME } = require('./constants');
 const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
-const { graphqlHTTP } = require('express-graphql');
 const { loadSchemaSync, addResolversToSchema, GraphQLFileLoader, introspectSchema, stitchSchemas, } = require('graphql-tools');
-const bodyParser = require('body-parser');
 const { join } = require('path');
 const { fetch } = require('cross-fetch');
 const { print } = require('graphql');
@@ -13,6 +11,8 @@ const graphQlResolvers = require('./graphql/resolvers/index');
 const { RedisClient} = require('redis');
 const session = require('express-session');
 const connectRedis = require('connect-redis');
+const http = require('http');
+const socketIo = require('socket.io');
 
 
 const main = async () => {
@@ -72,7 +72,12 @@ const main = async () => {
     resolvers: graphQlResolvers
   });
 
-  async function simExecutor({ document, variables }) {
+  async function simExecutor({ document, variables, context }) {
+    if (context) {
+      if (!context?.res.req.session.userId) {
+        throw new Error('Unauthorized');
+      }
+    }
     const query = print(document);
     const fetchResult = await fetch(process.env.SIM_ENDPOINT, {
       method: 'POST',
@@ -113,11 +118,35 @@ const main = async () => {
     cors: false
   });
 
+  // Socket io
+  server = http.createServer(app);
+  io = socketIo(server, {
+    cors: {
+      origin: process.env.CORS_ORIGIN,
+      credentials: true,
+    }
+  });
+
+  io.sockets.on('connection', (socket) => {
+    socket.on('active', userId => {
+      socket.userId = userId;
+      redis.set('active:' + userId, "1");
+    });
+
+    socket.on('inactive', data => {
+      redis.del('active:' + socket.userId);
+    })
+
+    socket.on('disconnect', data => {
+      redis.del('active:' + socket.userId);
+    });
+  });
+
   // ==== Start server ====
 
   mongoose.connect(process.env.MONGO_CONNECTION, {useNewUrlParser: true})
     .then(() => {
-      app.listen(parseInt(process.env.SRV_PORT));
+      server.listen(parseInt(process.env.SRV_PORT));
     })
     .catch(err => {
       console.log(err);

@@ -29,6 +29,7 @@ function Powerplant(capacity, transitionDelay, initiallyOn=false, battery=Batter
     isOff() { return state == OFF; },
     transitionPoint() { return transition.when; },
     transitionDelay() { return transitionDelay; },
+    transitionLeft() { return transition.when ? transition.when - currentTime : transition.when; },
 
     // TODO: Taking a time here might make sense, as a convenience, because
     // turning the plant on/off inherently depends on the current time.

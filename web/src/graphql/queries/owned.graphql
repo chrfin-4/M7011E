@@ -1,7 +1,11 @@
 query Owned {
   users {
+    _id
+    name
+    type
     prosumerData {
       houseId
+      banned
     }
   }
 }

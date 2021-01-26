@@ -1,0 +1,7 @@
+mutation SetProductionLevel($percent: Int!) {
+  setProductionLevel(id: -1, percent: $percent) {
+    id
+    productionStatus
+    nextProductionTransition
+  }
+}

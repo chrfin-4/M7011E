@@ -14,70 +14,44 @@ import {
 import clsx from 'clsx';
 import { 
   Box,
-  Radio,
-  FormControlLabel,
   Typography,
   Button,
   Alert,
   Grid,
-  Card,
-  CardContent,
-  CardActions,
+  Paper,
+  TablePagination,
+  TableContainer,
+  Table,
+  TableRow,
+  TableCell,
+  TableHead,
+  TableBody,
+  TableFooter,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton} from '@material-ui/lab';
 import { useApolloClient } from '@apollo/client';
+import { withAuthentication } from '../src/utils/withAuthentication';
 
 const useStyles = makeStyles((theme) => ({
-  root: {
-    minWidth: 275,
-  },
-  bullet: {
-    display: 'inline-block',
-    margin: '0 2px',
-    transform: 'scale(0.8)',
-  },
-  title: {
-    fontSize: 14,
-  },
-  pos: {
-    marginBottom: 12,
-  },
-  wrapper: {
-    width: '100%',
-    height: '80vh',
-    overflowY: 'auto',
-    marginTop: 8,
-    '&::-webkit-scrollbar': {
-      width: '0.4em'
-    },
-    '&::-webkit-scrollbar-track': {
-      boxShadow: 'inset 0 0 6px rgba(0,0,0,0.00)',
-      webkitBoxShadow: 'inset 0 0 6px rgba(0,0,0,0.00)'
-    },
-    '&::-webkit-scrollbar-thumb': {
-      backgroundColor: 'rgba(0,0,0,.1)',
-      outline: '1px solid slategrey'
-    }
-  },
-  formField: {
-    marginTop: 8
-  },
-  itemContainer: {
-    // width: '30%',
-  },
   item: {
-    height: 48,
-    padding: '0 30px',
-    width: '100%'
+    width: '100%',
+    maxWidth: '185px'
   },
-  cnt: {
-    display: 'grid', 
-    gap: 8, 
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    marginRight: '3px',
-    marginLeft: '3px'
-  }
+  paper: {
+    padding: theme.spacing(2),
+    margin: 'auto',
+    overflow: 'hidden',
+    maxWidth: '700px'
+  },
+  container: {
+    maxHeight: '75vh',
+  },
+  hideLastBorder: {
+    '& > *': {
+      borderBottom: 'unset',
+    },
+  },
 }));
 
 const Overview = ({}) => {
@@ -87,56 +61,113 @@ const Overview = ({}) => {
   const [sell] = useSellMutation();
   const apolloClient = useApolloClient();
 
-  const { data, loading } = useMeQuery({
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+
+  const { data: meData, loading: meLoading } = useMeQuery({
     skip: isServer(),
   });
-  let skip = isServer() || data?.me == undefined || data?.me == null;
 
+  const skip = isServer() || meData?.me === undefined || meData?.me === null;
+
+  // fetchPolicy needs to be set due to a but in apolloclient where if
+  // skip is set to a variable it won't work.
   const { data: oData, loading: oLoading } = useOwnedQuery({
     fetchPolicy: skip ? 'cache-only' : 'cache-and-network',
     skip: skip,
   })
 
   const { data: pData, loading: pLoading } = useProsumersQuery({
+    fetchPolicy: skip ? 'cache-only' : 'cache-and-network',
     skip: skip,
   });
 
   // Redirect if already signed in
-  if (loading || !data?.me && isServer()) return null;
-  else if (!data?.me && !isServer()) router.push("/login");
+  if (meLoading) return null;
+  if (isServer()) { // Serverside
+    if (!meData?.me || meData.me === null) return null; // If not signed in
+    if (!meData?.me.type >= 1) return null; // If not prosumer
+  }
+  else { // Client side
+    if (!meData?.me || meData.me === null) {
+      router.push("/login");
+      return null;
+    } // If not signed in
+    if (!meData?.me.type >= 1) return null; // If not prosumer
+  }
+  if (pLoading || oLoading) return null;
 
   let body1 = null;
-  let body2 = null;
 
-  if (pLoading || oLoading) {
-  } else if(pData?.prosumerStates && oData?.users) {
-    let owned = oData.users.map(usr=>usr.prosumerData.houseId);
-    body1 = (
-      <Box className={clsx(classes.wrapper)}>
-        <Box className={clsx(classes.cnt)}>
-          {
-            pData.prosumerStates.map((ps) => !ps ? null : (
-              <Box key={ps.id} className={clsx(classes.itemContainer)}>
-                <Card>
-                  <CardContent>
-                    <Typography className={classes.title} color="textSecondary" gutterBottom>
-                      House
-                    </Typography>
-                    <Typography variant="h5" component="div">
-                      House {ps.id}
-                    </Typography>
-                    <Typography className={classes.pos} color="textSecondary">
-                      Status: {owned.includes(parseInt(ps.id)) ? "owned" : "free"}
-                    </Typography>
-                  </CardContent>
-                  <CardActions>
+  let owned = oData.users.map(usr=>usr.prosumerData.houseId);
+  const rows = pData.prosumerStates;
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+  const houseId = meData.me?.prosumerData.houseId;
+  const ow = meData.me?.prosumerData.houseId !== undefined && meData.me?.prosumerData.houseId !== null
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  }
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(event.target.value);
+    setPage(0);
+  }
+
+  body1 = (
+    <Paper className={clsx(classes.paper)}>
+      <TableContainer className={clsx(classes.container)}>
+        <Table stickyHeader className={clsx(classes.table)} aria-label="simple table">
+          <TableHead>
+            <TableRow>
+              <TableCell>
+                Your house --&gt;
+              </TableCell>
+              <TableCell>
+                {ow ? "House " + houseId : "None Owned"}
+              </TableCell>
+              <TableCell>
+                <Button 
+                  size="small"
+                  variant="contained"
+                  color="secondary"
+                  className={clsx(classes.item)}
+                  disabled={!ow}
+                  onClick={async () => {
+                    await sell();
+                    await apolloClient.resetStore();
+                  }}
+                >
+                  Sell
+                </Button>
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell style={{ top: 63 }}>House</TableCell>
+              <TableCell style={{ top: 63 }}>Status</TableCell>
+              <TableCell style={{ top: 63 }}>Action</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {
+              (rowsPerPage > 0
+                ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                : rows
+              ).map((ps) => !ps ? null : (
+                <TableRow key={ps.id}>
+                  <TableCell>
+                    House {ps.id}
+                  </TableCell>
+                  <TableCell>
+                    {owned.includes(parseInt(ps.id)) ? "owned" : "free"}
+                  </TableCell>
+                  <TableCell>
                     <Button 
-                      sx={{ mb: 1 }}
                       variant="contained"
                       color="primary"
                       className={clsx(classes.item)}
                       id={"house"+ps.id}
-                      disabled={owned.includes(parseInt(ps.id)) || data.me?.prosumerData.houseId !== undefined && data.me?.prosumerData.houseId !== null}
+                      disabled={owned.includes(parseInt(ps.id)) || meData.me?.prosumerData.houseId !== undefined && meData.me?.prosumerData.houseId !== null}
                       onClick={async () => {
                         if (owned.includes(parseInt(ps.id))) {
                         } else {
@@ -151,67 +182,47 @@ const Overview = ({}) => {
                     >
                       {owned.includes(parseInt(ps.id)) ? "Owned" : "Buy"}
                     </Button>
-                  </CardActions>
-                </Card>
-              </Box>
-            ))
-          }
-        </Box>
-      </Box>
-    )
-
-    const houseId = data.me?.prosumerData.houseId;
-    const ow = data.me?.prosumerData.houseId !== undefined && data.me?.prosumerData.houseId !== null
-    body2 = (
-      <Box sx={{ mx: 'auto', width: '30%'}}>
-        <Card>
-          <CardContent>
-            <Typography className={classes.title} color="textSecondary" gutterBottom>
-              House
-            </Typography>
-            <Typography variant="h5" component="div">
-              {ow ? "House " + houseId : "None Owned"}
-            </Typography>
-          </CardContent>
-          <CardActions>
-            <Button 
-              sx={{ mb: 1 }}
-              variant="contained"
-              color="secondary"
-              className={clsx(classes.item)}
-              disabled={!ow}
-              onClick={async () => {
-                await sell();
-                await apolloClient.resetStore();
-              }}
-            >
-              Sell
-            </Button>
-          </CardActions>
-        </Card>
-      </Box>
-    )
-  }
-
+                  </TableCell>
+                </TableRow>
+              ))
+            }
+            {emptyRows > 0 && (
+              <TableRow style={{ height: 53 * emptyRows }}>
+                <TableCell colSpan={6} />
+              </TableRow>
+            )}
+          </TableBody>
+          <TableFooter>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
+                colSpan={3}
+                count={rows.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+              />
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </TableContainer>
+    </Paper>
+  )
 
   return (
-    <Box>
+    <Box sx={{ overflow: "hidden", mx: 1 }}>
       {
-        data.me?.prosumerData.houseId !== undefined && data.me?.prosumerData.houseId !== null ? (
-          <Alert severity="success" sx={{width: '30%', mx: 'auto', mb: 4 }}>You are a house owner!</Alert>
+        meData.me?.prosumerData.houseId !== undefined && meData.me?.prosumerData.houseId !== null ? (
+          <Alert severity="success" sx={{ maxWidth: '535px', mx: 'auto', mb: 4 }}>You are a house owner!</Alert>
         ) : (
-          <Alert severity="warning" sx={{width: '30%', mx: 'auto', mb: 4 }}>You don't own a house</Alert>
+          <Alert severity="warning" sx={{ maxWidth: '535px', mx: 'auto', mb: 4 }}>You don't own a house</Alert>
         )
       }
       <Grid container>
-        <Grid item xs={6}>
+        <Grid item xs={12}>
           <Box>
             {body1}
-          </Box>
-        </Grid>
-        <Grid item xs={6}>
-          <Box>
-            {body2}
           </Box>
         </Grid>
       </Grid>

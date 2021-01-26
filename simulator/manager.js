@@ -216,7 +216,7 @@ function Manager(model, state=getDefaultState(), args) {
         },
         chargeRatio,
         productionStatus: (manager.productionIsOn() ? 100 : 0),
-        nextProductionTransition: plant.transitionPoint(),
+        nextProductionTransition: plant.transitionLeft(),
       };
     }
 
