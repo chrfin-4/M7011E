@@ -34,6 +34,9 @@ import { useApolloClient } from '@apollo/client';
 import { withAuthentication } from '../src/utils/withAuthentication';
 
 const useStyles = makeStyles((theme) => ({
+  tableCell: {
+    left: 'auto',
+  },
   item: {
     width: '100%',
     maxWidth: '185px'
@@ -54,7 +57,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Overview = ({}) => {
+const Market = ({}) => {
   const classes = useStyles();
   const router = useRouter();
   const [purchase] = usePurchaseMutation();
@@ -120,13 +123,13 @@ const Overview = ({}) => {
         <Table stickyHeader className={clsx(classes.table)} aria-label="simple table">
           <TableHead>
             <TableRow>
-              <TableCell>
+              <TableCell className={clsx(classes.tableCell)}>
                 Your house --&gt;
               </TableCell>
-              <TableCell>
+              <TableCell className={clsx(classes.tableCell)}>
                 {ow ? "House " + houseId : "None Owned"}
               </TableCell>
-              <TableCell>
+              <TableCell className={clsx(classes.tableCell)}>
                 <Button 
                   size="small"
                   variant="contained"
@@ -143,9 +146,9 @@ const Overview = ({}) => {
               </TableCell>
             </TableRow>
             <TableRow>
-              <TableCell style={{ top: 63 }}>House</TableCell>
-              <TableCell style={{ top: 63 }}>Status</TableCell>
-              <TableCell style={{ top: 63 }}>Action</TableCell>
+              <TableCell className={clsx(classes.tableCell)} style={{ top: 81 }}>House</TableCell>
+              <TableCell className={clsx(classes.tableCell)} style={{ top: 81 }}>Status</TableCell>
+              <TableCell className={clsx(classes.tableCell)} style={{ top: 81 }}>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -230,4 +233,4 @@ const Overview = ({}) => {
   );
 };
 
-export default withApollo({ ssr: true })(Overview);
+export default withApollo({ ssr: true })(Market);

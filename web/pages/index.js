@@ -22,6 +22,7 @@ const Index = (p) => {
           </Typography>
           <Typography variant="h5">
             <code>
+              Name: {data.me.name}<br/>
               Email: {data.me.email}<br/>
               Type: {(() => {
                 switch (data.me.type) {

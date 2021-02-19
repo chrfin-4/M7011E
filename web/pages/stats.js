@@ -4,6 +4,7 @@ import { withApollo } from "../src/utils/withApollo";
 import { useApolloClient } from '@apollo/client';
 import { isServer } from '../src/utils/isServer';
 import { useRouter } from 'next/router';
+import { powConv } from '../src/utils/powConv';
 
 import { 
   useMeQuery, 
@@ -53,9 +54,6 @@ const useStyles = makeStyles((theme) => ({
     margin: 'auto',
     maxWidth: '700px',
   },
-  actionPaper: {
-    maxWidth: 230
-  },
   table: {
     // minWidth: 650,
   },
@@ -101,13 +99,13 @@ function BatteryRow(props) {
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell>Charge</TableCell>
                   <TableCell align="right">
-                    {charge.toFixed(3)}
+                    {powConv(charge)}
                   </TableCell>
                 </TableRow>
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell>Capacity</TableCell>
                   <TableCell align="right">
-                    {capacity.toFixed(3)}
+                    {powConv(capacity)}
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -195,8 +193,8 @@ const Stats = ({}) => {
               <TableCell align="right">{hasHouse ? (pState.banned ? "BANNED" : "No") : "No house"}</TableCell>
             </TableRow>
               <TableRow className={clsx(classes.hideLastBorder)}>
-                <TableCell component="th" scope="row">Banned</TableCell>
-                <TableCell align="right">{hasHouse ? (pState?.banDuration / 1000).toFixed(0) : "No house"}</TableCell>
+                <TableCell component="th" scope="row">Ban duration</TableCell>
+                <TableCell align="right">{hasHouse ? (pState?.banDuration / 1000).toFixed(0) + "s" : "No house"}</TableCell>
               </TableRow>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Blackout</TableCell>
@@ -204,15 +202,15 @@ const Stats = ({}) => {
             </TableRow>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Power production</TableCell>
-              <TableCell align="right">{hasHouse ? pState.powerProduction.toFixed(3) : "No house"}</TableCell>
+              <TableCell align="right">{hasHouse ? powConv(pState?.powerProduction) : "No house"}</TableCell>
             </TableRow>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Power consumption</TableCell>
-              <TableCell align="right">{hasHouse ? pState.powerConsumption.toFixed(3) : "No house"}</TableCell>
+              <TableCell align="right">{hasHouse ? powConv(pState?.powerConsumption) : "No house"}</TableCell>
             </TableRow>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Net production</TableCell>
-              <TableCell align="right">{hasHouse ? (pState.powerProduction - pState.powerConsumption).toFixed(3) : "No house"}</TableCell>
+              <TableCell align="right">{hasHouse ? powConv(pState?.powerProduction - pState?.powerConsumption) : "No house"}</TableCell>
             </TableRow>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Charge ratio</TableCell>
@@ -249,7 +247,7 @@ const Stats = ({}) => {
           <TableBody>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Windspeed</TableCell>
-              <TableCell align="right">{weather.windSpeed.toFixed(3)}</TableCell>
+              <TableCell align="right">{weather.windSpeed.toFixed(1) + " m/s"}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
@@ -270,15 +268,15 @@ const Stats = ({}) => {
           <TableBody>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Market demand</TableCell>
-              <TableCell align="right">{mdData.marketDemand.toFixed(0).replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",")}</TableCell>
+              <TableCell align="right">{powConv(mdData.marketDemand)}</TableCell>
             </TableRow>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Current price</TableCell>
-              <TableCell align="right">{mdData.currentPrice.toFixed(3)}</TableCell>
+              <TableCell align="right">{(mdData.currentPrice / 100).toFixed(2) + " kr/kWh"}</TableCell>
             </TableRow>
             <TableRow className={clsx(classes.hideLastBorder)}>
               <TableCell component="th" scope="row">Modeled price</TableCell>
-              <TableCell align="right">{mdData.modeledPrice.toFixed(3)}</TableCell>
+              <TableCell align="right">{(mdData.modeledPrice / 100).toFixed(2) + " kr/kWh"}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
@@ -290,7 +288,7 @@ const Stats = ({}) => {
           Manage
         </Typography>
         <Grid container spacing={2} justifyContent="flex-start">
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={6} lg={12} xl={6}>
             <Paper className={clsx(classes.paper, classes.actionPaper)}>
               <Typography variant="h6" gutterBottom>
                 Set charge ratio
@@ -335,7 +333,7 @@ const Stats = ({}) => {
               </Formik>
             </Paper>
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={6} lg={12} xl={6}>
             <Paper className={clsx(classes.paper, classes.actionPaper)}>
               <Typography variant="h6" gutterBottom>
                 Set discharge ratio

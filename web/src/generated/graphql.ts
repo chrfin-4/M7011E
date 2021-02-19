@@ -444,7 +444,7 @@ export type MeQuery = (
   { __typename?: 'Query' }
   & { me?: Maybe<(
     { __typename?: 'User' }
-    & Pick<User, '_id' | 'email' | 'type'>
+    & Pick<User, '_id' | 'name' | 'email' | 'type'>
     & { prosumerData?: Maybe<(
       { __typename?: 'ProsumerData' }
       & Pick<ProsumerData, 'banned' | 'houseId'>
@@ -1060,6 +1060,7 @@ export const MeDocument = gql`
     query Me {
   me {
     _id
+    name
     email
     type
     prosumerData {

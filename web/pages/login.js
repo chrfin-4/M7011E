@@ -43,7 +43,7 @@ const Login = () => {
   }
   else { // Client side
     if (meData?.me) {
-      router.push("/overview");
+      router.push("/market");
       return null;
     } // If not signed in
     if (meData?.me.type >= 2) return null; // If not admin
@@ -75,7 +75,7 @@ const Login = () => {
               } else {
                 // worked
                 await apolloClient.resetStore();
-                router.push("/overview");
+                router.push("/market");
               }
             }
           }}

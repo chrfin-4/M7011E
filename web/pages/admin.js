@@ -18,8 +18,11 @@ import {
   TableContainer,
   TablePagination,
   Typography,
+  Badge,
+  Avatar,
+  colors,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, unstable_createMuiStrictModeTheme, withStyles } from '@material-ui/core/styles';
 import { LoadingButton } from '@material-ui/lab';
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
@@ -56,6 +59,7 @@ import { useRouter } from 'next/router';
 import { ApolloClient, useApolloClient } from '@apollo/client';
 import { TextField } from 'formik-material-ui';
 import { Field, Form, Formik } from 'formik';
+import { powConv } from '../src/utils/powConv';
 
 // Combine polling queries
 const { document: nohDocument } = combineQuery('nohPollingQuery')
@@ -65,6 +69,12 @@ const { document: nohDocument } = combineQuery('nohPollingQuery')
   .add(HasBlackoutDocument)
 
 const useStyles = makeStyles((theme) => ({
+  avatar: {
+    backgroundColor: theme.palette.warning.main,
+  },
+  tableCell: {
+    left: 'auto',
+  },
   item: {
     width: '100%',
     maxWidth: '185px'
@@ -86,16 +96,48 @@ const useStyles = makeStyles((theme) => ({
       borderBottom: 'unset',
     },
   },
-}));
-
-const reducer = (state, action) => {
-  switch (action.type) {
-    case 'toggle':
-      let obj = {...state};
-      obj[action.payload] = !obj[action.payload];
-      return obj;
+  usrOnline: {
+    backgroundColor: '#44b700',
+    color: '#44b700',
+    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+    '&::after': {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      borderRadius: '50%',
+      animation: '$ripple 1.2s infinite ease-in-out',
+      border: '1px solid currentColor',
+      content: '""',
+    },
+  },
+  '@keyframes ripple': {
+    '0%': {
+      transform: 'scale(.8)',
+      opacity: 1,
+    },
+    '100%': {
+      transform: 'scale(2.4)',
+      opacity: 0,
+    },
+  },
+  usrOffline: {
+    backgroundColor: '#f44336',
+    color: '#f44336',
+    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+    '&::after': {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      borderRadius: '50%',
+      border: '1px solid currentColor',
+      content: '""',
+    },
   }
-}
+}));
 
 function BatteryRow(props) {
   const { charge, capacity } = props;
@@ -132,13 +174,13 @@ function BatteryRow(props) {
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell>Charge</TableCell>
                   <TableCell align="right">
-                    {charge?.toFixed(3)}
+                    {powConv(charge)}
                   </TableCell>
                 </TableRow>
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell>Capacity</TableCell>
                   <TableCell align="right">
-                    {capacity?.toFixed(3)}
+                    {powConv(capacity)}
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -148,11 +190,191 @@ function BatteryRow(props) {
       </TableRow>
     </>
   )
-}
+};
 
 BatteryRow.propTypes = {
   charge: PropTypes.number,
   capacity: PropTypes.number,
+};
+
+function UserRow(props) {
+  const { usr, online, setUser, setHouse } = props;
+  const classes = useStyles();
+
+  let hasHouse = usr.prosumerData.houseId !== undefined && usr.prosumerData.houseId !== null;
+  return (
+    <>
+      <TableRow key={usr._id + "_1"}>
+        <TableCell>
+          <IconButton
+            aria-label="expand row"
+            size="small"
+            onClick={() => {
+              if (!user) {
+                setUser(usr._id);
+                if (hasHouse) {
+                  setHouse(usr.prosumerData.houseId);
+                }
+              } else {
+                setUser(null);
+                setHouse(null);
+              }
+            }}
+            // onClick={() => userDispatch({ type: 'toggle', payload: usr._id })}
+          >
+            {user === usr._id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+          </IconButton>
+          <Badge
+            overlap="circular"
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            variant="dot"
+            sx={{ marginRight: "10px" }}
+            classes={{
+              badge: (online.includes(usr._id) ? classes.usrOnline : classes.usrOffline),
+            }}
+          >
+            <Avatar className={classes.avatar} alt={usr.name} />
+          </Badge>
+          {usr._id === meData.me._id ? usr.name + " (YOU)" : usr.name}
+        </TableCell>
+        <TableCell>
+          {online.includes(usr._id) ? "ONLINE" : "OFFLINE"}
+        </TableCell>
+        <TableCell>
+          {bState.hasBlackout[parseInt(usr.prosumerData.houseId)]?.blackout ? "BLACKOUT" : "No"}
+        </TableCell>
+        <TableCell>
+          {hasHouse ? "House " + usr.prosumerData.houseId : "No house"}
+        </TableCell>
+      </TableRow>
+      <TableRow key={usr._id + "_2"} className={clsx(classes.hideLastBorder)}>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
+          <Collapse in={user === usr._id} timeout='auto'>
+            <Table size="small" aria-label="battery">
+              <TableHead>
+                <TableRow className={clsx(classes.hideLastBorder)}>
+                  <TableCell>Stat</TableCell>
+                  <TableCell align="right">Data</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow className={clsx(classes.hideLastBorder)}>
+                  <TableCell component="th" scope="row">Banned</TableCell>
+                  <TableCell align="right">{hasHouse ? (pdState?.banned ? "BANNED" : "No") : "No house"}</TableCell>
+                </TableRow>
+                <TableRow className={clsx(classes.hideLastBorder)}>
+                  <TableCell component="th" scope="row">Banned</TableCell>
+                  <TableCell align="right">{hasHouse ? (pdState?.banDuration / 1000).toFixed(0) : "No house"}</TableCell>
+                </TableRow>
+                <TableRow className={clsx(classes.hideLastBorder)}>
+                  <TableCell component="th" scope="row">Blackout</TableCell>
+                  <TableCell align="right">{hasHouse ? (pdState?.blackout ? "BLACKOUT" : "No") : "No house"}</TableCell>
+                </TableRow>
+                <TableRow className={clsx(classes.hideLastBorder)}>
+                  <TableCell component="th" scope="row">Power production</TableCell>
+                  <TableCell align="right">{hasHouse ? pdState?.powerProduction.toFixed(3) : "No house"}</TableCell>
+                </TableRow>
+                <TableRow className={clsx(classes.hideLastBorder)}>
+                  <TableCell component="th" scope="row">Power consumption</TableCell>
+                  <TableCell align="right">{hasHouse ? pdState?.powerConsumption.toFixed(3) : "No house"}</TableCell>
+                </TableRow>
+                <TableRow className={clsx(classes.hideLastBorder)}>
+                  <TableCell component="th" scope="row">Net production</TableCell>
+                  <TableCell align="right">{hasHouse ? (pdState?.powerProduction - pdState?.powerConsumption).toFixed(3) : "No house"}</TableCell>
+                </TableRow>
+                <TableRow className={clsx(classes.hideLastBorder)}>
+                  <TableCell component="th" scope="row">Charge ratio</TableCell>
+                  <TableCell align="right">{hasHouse ? pdState?.chargeRatio.toFixed(3) : "No house"}</TableCell>
+                </TableRow>
+                <TableRow className={clsx(classes.hideLastBorder)}>
+                  <TableCell component="th" scope="row">Discharge ratio</TableCell>
+                  <TableCell align="right">{hasHouse ? pdState?.dischargeRatio.toFixed(3) : "No house"}</TableCell>
+                </TableRow>
+                {hasHouse ? (
+                  <BatteryRow charge={pdState?.battery.charge} capacity={pdState?.battery.capacity}/>
+                ) : (
+                  <TableRow className={clsx(classes.hideLastBorder)}>
+                    <TableCell>Battery level</TableCell>
+                    <TableCell align="right">No house</TableCell>
+                  </TableRow>
+                )}
+                <TableRow className={clsx(classes.hideLastBorder)}>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      className={clsx(classes.item)}
+                      onClick={async () => {
+                        await deleteUser({
+                          variables: {
+                            userId: usr._id,
+                          }
+                        });
+                        await apolloClient.resetStore();
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </TableCell>
+                  <Formik
+                    initialValues={{ duration: 0 }}
+                    onSubmit={async (values) => {
+                      const response = await banProducer({
+                        variables: {
+                          id: usr.prosumerData.houseId,
+                          duration: values.duration * 1000
+                        }
+                      });
+                    }}
+                  >
+                    {({ isSubmitting }) => (
+                      <>
+                        <TableCell>
+                          <Form id={usr._id + "_banform"}>
+                            <Field
+                              className={clsx(classes.item)}
+                              component={TextField}
+                              name="duration"
+                              type="number"
+                              label="Duration"
+                              inputProps={{ min: 10, max: 100, step: 1 }}
+                            />
+                          </Form>
+                        </TableCell>
+                        <TableCell>
+                          <LoadingButton
+                            variant="contained"
+                            color="secondary"
+                            className={clsx(classes.item)}
+                            form={usr._id + "_banform"}
+                            type="submit"
+                            pending={isSubmitting}
+                            sx={{ height: 50 }}
+                          >
+                            Ban
+                          </LoadingButton>
+                        </TableCell>
+                      </>
+                    )}
+                  </Formik>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    </>
+  )
+};
+
+UserRow.propTypes = {
+  usr: PropTypes.object.isRequired,
+  online: PropTypes.array.isRequired,
+  setUser: PropTypes.func.isRequired,
+  setHouse: PropTypes.func.isRequired,
 };
 
 const Admin = (ctx) => {
@@ -258,15 +480,15 @@ const Admin = (ctx) => {
               <TableBody>
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell component="th" scope="row">Market demand</TableCell>
-                  <TableCell align="right">{mdState.marketDemand.toFixed(0).replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",")}</TableCell>
+                  <TableCell align="right">{powConv(mdState.marketDemand)}</TableCell>
                 </TableRow>
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell component="th" scope="row">Current price</TableCell>
-                  <TableCell align="right">{mdState.currentPrice.toFixed(3)}</TableCell>
+                  <TableCell align="right">{(mdState.currentPrice / 100).toFixed(2) + " kr/kWh"}</TableCell>
                 </TableRow>
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell component="th" scope="row">Modeled price</TableCell>
-                  <TableCell align="right">{mdState.modeledPrice.toFixed(3)}</TableCell>
+                  <TableCell align="right">{(mdState.modeledPrice / 100).toFixed(2) + " kr/kWh"}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -291,24 +513,24 @@ const Admin = (ctx) => {
                 </TableRow>
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell component="th" scope="row">Next production transition</TableCell>
-                  <TableCell align="right">{(mState.nextProductionTransition / 1000).toFixed(3)}</TableCell>
+                  <TableCell align="right">{(mState.nextProductionTransition / 1000).toFixed(0) + "s"}</TableCell>
                 </TableRow>
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell component="th" scope="row">Power production</TableCell>
-                  <TableCell align="right">{mState.powerProduction.toFixed(3)}</TableCell>
+                  <TableCell align="right">{powConv(mState.powerProduction)}</TableCell>
                 </TableRow>
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell component="th" scope="row">Power consumption</TableCell>
-                  <TableCell align="right">{mState.powerConsumption.toFixed(3)}</TableCell>
+                  <TableCell align="right">{powConv(mState.powerConsumption)}</TableCell>
                 </TableRow>
                 <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell component="th" scope="row">Net production</TableCell>
-                  <TableCell align="right">{(mState.powerProduction - mState.powerConsumption).toFixed(3)}</TableCell>
+                  <TableCell align="right">{powConv(mState.powerProduction - mState.powerConsumption)}</TableCell>
                 </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
+                {/* <TableRow className={clsx(classes.hideLastBorder)}>
                   <TableCell component="th" scope="row">Charge ratio</TableCell>
-                  <TableCell align="right">{mState.chargeRatio.toFixed(3)}</TableCell>
-                </TableRow>
+                  <TableCell align="right">{(mState.chargeRatio * 100).toFixed(0) + "%"}</TableCell>
+                </TableRow> */}
               </TableBody>
             </Table>
           </TableContainer>
@@ -319,7 +541,7 @@ const Admin = (ctx) => {
               Manage
             </Typography>
             <Grid container spacing={2} justifyContent="flex-start">
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} lg={12} xl={6}>
                 <Paper elevation={4} className={clsx(classes.paper, classes.actionPaper)}>
                   <Typography variant="h6" gutterBottom>
                     Set charge ratio
@@ -364,7 +586,7 @@ const Admin = (ctx) => {
                   </Formik>
                 </Paper>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} lg={12} xl={6}>
                 <Paper elevation={4} className={clsx(classes.paper, classes.actionPaper)}>
                   <Typography variant="h6" gutterBottom>
                     Set electricity price
@@ -453,11 +675,12 @@ const Admin = (ctx) => {
             <TableContainer className={clsx(classes.container)}>
               <Table stickyHeader className={clsx(classes.table)} aria-label="simple table">
                 <TableHead>
-                  <TableRow className={clsx(classes.hideLastBorder)}>
-                    <TableCell>Prosumer</TableCell>
-                    <TableCell>Online</TableCell>
-                    <TableCell>Blackout</TableCell>
-                    <TableCell>House</TableCell>
+                  <TableRow>
+                    <TableCell className={clsx(classes.tableCell)} />
+                    <TableCell className={clsx(classes.tableCell)}>Prosumer</TableCell>
+                    <TableCell className={clsx(classes.tableCell)}>Online</TableCell>
+                    <TableCell className={clsx(classes.tableCell)}>Blackout</TableCell>
+                    <TableCell className={clsx(classes.tableCell)}>House</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -466,160 +689,178 @@ const Admin = (ctx) => {
                       ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                       : rows
                     ).map((usr) => {
-                      if (!usr) return null;
                       let hasHouse = usr.prosumerData.houseId !== undefined && usr.prosumerData.houseId !== null;
+                      const key1 = usr._id + "_1";
+                      const key2 = usr._id + "_2";
                       return (
-                      <>
-                        <TableRow key={usr._id + "1"}>
-                          <TableCell>
-                            <IconButton
-                              aria-label="expand row"
-                              size="small"
-                              onClick={() => {
-                                if (!user) {
-                                  setUser(usr._id);
-                                  if (hasHouse) {
-                                    setHouse(usr.prosumerData.houseId);
+                        <React.Fragment key={usr._id}>
+                          <TableRow>
+                            <TableCell>
+                              <IconButton
+                                aria-label="expand row"
+                                size="small"
+                                onClick={() => {
+                                  if (!user) {
+                                    setUser(usr._id);
+                                    if (hasHouse) {
+                                      setHouse(usr.prosumerData.houseId);
+                                    }
+                                  } else {
+                                    setUser(null);
+                                    setHouse(null);
                                   }
-                                } else {
-                                  setUser(null);
-                                  setHouse(null);
-                                }
-                              }}
-                              // onClick={() => userDispatch({ type: 'toggle', payload: usr._id })}
-                            >
-                              {user === usr._id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                            </IconButton>
-                            {usr._id === meData.me._id ? usr.name + " (YOU)" : usr.name}
-                          </TableCell>
-                          <TableCell>
-                            {online.includes(usr._id) ? "ONLINE" : "OFFLINE"}
-                          </TableCell>
-                          <TableCell>
-                            {bState.hasBlackout[parseInt(usr.prosumerData.houseId)]?.blackout ? "BLACKOUT" : "No"}
-                          </TableCell>
-                          <TableCell>
-                            {hasHouse ? "House " + usr.prosumerData.houseId : "No house"}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow key={usr._id + "2"} className={clsx(classes.hideLastBorder)}>
-                          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
-                            <Collapse in={user === usr._id} timeout='auto'>
-                              <Table size="small" aria-label="battery">
-                                <TableHead>
-                                  <TableRow className={clsx(classes.hideLastBorder)}>
-                                    <TableCell>Stat</TableCell>
-                                    <TableCell align="right">Data</TableCell>
-                                  </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  <TableRow className={clsx(classes.hideLastBorder)}>
-                                    <TableCell component="th" scope="row">Banned</TableCell>
-                                    <TableCell align="right">{hasHouse ? (pdState?.banned ? "BANNED" : "No") : "No house"}</TableCell>
-                                  </TableRow>
-                                  <TableRow className={clsx(classes.hideLastBorder)}>
-                                    <TableCell component="th" scope="row">Banned</TableCell>
-                                    <TableCell align="right">{hasHouse ? (pdState?.banDuration / 1000).toFixed(0) : "No house"}</TableCell>
-                                  </TableRow>
-                                  <TableRow className={clsx(classes.hideLastBorder)}>
-                                    <TableCell component="th" scope="row">Blackout</TableCell>
-                                    <TableCell align="right">{hasHouse ? (pdState?.blackout ? "BLACKOUT" : "No") : "No house"}</TableCell>
-                                  </TableRow>
-                                  <TableRow className={clsx(classes.hideLastBorder)}>
-                                    <TableCell component="th" scope="row">Power production</TableCell>
-                                    <TableCell align="right">{hasHouse ? pdState?.powerProduction.toFixed(3) : "No house"}</TableCell>
-                                  </TableRow>
-                                  <TableRow className={clsx(classes.hideLastBorder)}>
-                                    <TableCell component="th" scope="row">Power consumption</TableCell>
-                                    <TableCell align="right">{hasHouse ? pdState?.powerConsumption.toFixed(3) : "No house"}</TableCell>
-                                  </TableRow>
-                                  <TableRow className={clsx(classes.hideLastBorder)}>
-                                    <TableCell component="th" scope="row">Net production</TableCell>
-                                    <TableCell align="right">{hasHouse ? (pdState?.powerProduction - pdState?.powerConsumption).toFixed(3) : "No house"}</TableCell>
-                                  </TableRow>
-                                  <TableRow className={clsx(classes.hideLastBorder)}>
-                                    <TableCell component="th" scope="row">Charge ratio</TableCell>
-                                    <TableCell align="right">{hasHouse ? pdState?.chargeRatio.toFixed(3) : "No house"}</TableCell>
-                                  </TableRow>
-                                  <TableRow className={clsx(classes.hideLastBorder)}>
-                                    <TableCell component="th" scope="row">Discharge ratio</TableCell>
-                                    <TableCell align="right">{hasHouse ? pdState?.dischargeRatio.toFixed(3) : "No house"}</TableCell>
-                                  </TableRow>
-                                  {hasHouse ? (
-                                    <BatteryRow charge={pdState?.battery.charge} capacity={pdState?.battery.capacity}/>
-                                  ) : (
+                                }}
+                                // onClick={() => userDispatch({ type: 'toggle', payload: usr._id })}
+                              >
+                                {user === usr._id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                              </IconButton>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                overlap="circular"
+                                anchorOrigin={{
+                                  vertical: 'bottom',
+                                  horizontal: 'right',
+                                }}
+                                variant="dot"
+                                sx={{ marginRight: "10px" }}
+                                classes={{
+                                  badge: (online.includes(usr._id) ? classes.usrOnline : classes.usrOffline),
+                                }}
+                              >
+                                <Avatar className={classes.avatar} alt={usr.name} />
+                              </Badge>
+                              {usr._id === meData.me._id ? usr.name + " (YOU)" : usr.name}
+                            </TableCell>
+                            <TableCell>
+                              {online.includes(usr._id) ? "ONLINE" : "OFFLINE"}
+                            </TableCell>
+                            <TableCell>
+                              {bState.hasBlackout[parseInt(usr.prosumerData.houseId)]?.blackout ? "BLACKOUT" : "No"}
+                            </TableCell>
+                            <TableCell>
+                              {hasHouse ? "House " + usr.prosumerData.houseId : "No house"}
+                            </TableCell>
+                          </TableRow>
+                          <TableRow className={clsx(classes.hideLastBorder)}>
+                            <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
+                              <Collapse in={user === usr._id} timeout='auto'>
+                                <Table size="small" aria-label="battery">
+                                  <TableHead>
                                     <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell>Battery level</TableCell>
-                                      <TableCell align="right">No house</TableCell>
+                                      <TableCell>Stat</TableCell>
+                                      <TableCell align="right">Data</TableCell>
                                     </TableRow>
-                                  )}
-                                  <TableRow className={clsx(classes.hideLastBorder)}>
-                                    <TableCell>
-                                      <Button
-                                        variant="contained"
-                                        color="secondary"
-                                        className={clsx(classes.item)}
-                                        onClick={async () => {
-                                          await deleteUser({
+                                  </TableHead>
+                                  <TableBody>
+                                    <TableRow className={clsx(classes.hideLastBorder)}>
+                                      <TableCell component="th" scope="row">Banned</TableCell>
+                                      <TableCell align="right">{hasHouse ? (pdState?.banned ? "BANNED" : "No") : "No house"}</TableCell>
+                                    </TableRow>
+                                    <TableRow className={clsx(classes.hideLastBorder)}>
+                                      <TableCell component="th" scope="row">Ban duration</TableCell>
+                                      <TableCell align="right">{hasHouse ? (pdState?.banDuration / 1000).toFixed(0) + "s" : "No house"}</TableCell>
+                                    </TableRow>
+                                    <TableRow className={clsx(classes.hideLastBorder)}>
+                                      <TableCell component="th" scope="row">Blackout</TableCell>
+                                      <TableCell align="right">{hasHouse ? (pdState?.blackout ? "BLACKOUT" : "No") : "No house"}</TableCell>
+                                    </TableRow>
+                                    <TableRow className={clsx(classes.hideLastBorder)}>
+                                      <TableCell component="th" scope="row">Power production</TableCell>
+                                      <TableCell align="right">{hasHouse ? powConv(pdState?.powerProduction) : "No house"}</TableCell>
+                                    </TableRow>
+                                    <TableRow className={clsx(classes.hideLastBorder)}>
+                                      <TableCell component="th" scope="row">Power consumption</TableCell>
+                                      <TableCell align="right">{hasHouse ? powConv(pdState?.powerConsumption) : "No house"}</TableCell>
+                                    </TableRow>
+                                    <TableRow className={clsx(classes.hideLastBorder)}>
+                                      <TableCell component="th" scope="row">Net production</TableCell>
+                                      <TableCell align="right">{hasHouse ? powConv(pdState?.powerProduction - pdState?.powerConsumption) : "No house"}</TableCell>
+                                    </TableRow>
+                                    <TableRow className={clsx(classes.hideLastBorder)}>
+                                      <TableCell component="th" scope="row">Charge ratio</TableCell>
+                                      <TableCell align="right">{hasHouse ? pdState?.chargeRatio.toFixed(3) : "No house"}</TableCell>
+                                    </TableRow>
+                                    <TableRow className={clsx(classes.hideLastBorder)}>
+                                      <TableCell component="th" scope="row">Discharge ratio</TableCell>
+                                      <TableCell align="right">{hasHouse ? pdState?.dischargeRatio.toFixed(3) : "No house"}</TableCell>
+                                    </TableRow>
+                                    {hasHouse ? (
+                                      <BatteryRow charge={pdState?.battery.charge} capacity={pdState?.battery.capacity}/>
+                                    ) : (
+                                      <TableRow className={clsx(classes.hideLastBorder)}>
+                                        <TableCell>Battery level</TableCell>
+                                        <TableCell align="right">No house</TableCell>
+                                      </TableRow>
+                                    )}
+                                    <TableRow className={clsx(classes.hideLastBorder)}>
+                                      <TableCell>
+                                        <Button
+                                          variant="contained"
+                                          color="secondary"
+                                          className={clsx(classes.item)}
+                                          onClick={async () => {
+                                            await deleteUser({
+                                              variables: {
+                                                userId: usr._id,
+                                              }
+                                            });
+                                            await apolloClient.resetStore();
+                                          }}
+                                        >
+                                          Delete
+                                        </Button>
+                                      </TableCell>
+                                      <Formik
+                                        initialValues={{ duration: 0 }}
+                                        onSubmit={async (values) => {
+                                          const response = await banProducer({
                                             variables: {
-                                              userId: usr._id,
+                                              id: usr.prosumerData.houseId,
+                                              duration: values.duration * 1000
                                             }
                                           });
-                                          await apolloClient.resetStore();
                                         }}
                                       >
-                                        Delete
-                                      </Button>
-                                    </TableCell>
-                                    <Formik
-                                      initialValues={{ duration: 0 }}
-                                      onSubmit={async (values) => {
-                                        const response = await banProducer({
-                                          variables: {
-                                            id: usr.prosumerData.houseId,
-                                            duration: values.duration * 1000
-                                          }
-                                        });
-                                      }}
-                                    >
-                                      {({ isSubmitting }) => (
-                                        <>
-                                          <TableCell>
-                                            <Form id={usr._id + "_banform"}>
-                                              <Field
+                                        {({ isSubmitting }) => (
+                                          <>
+                                            <TableCell>
+                                              <Form id={usr._id + "_banform"}>
+                                                <Field
+                                                  className={clsx(classes.item)}
+                                                  component={TextField}
+                                                  name="duration"
+                                                  type="number"
+                                                  label="Duration"
+                                                  inputProps={{ min: 10, max: 100, step: 1 }}
+                                                />
+                                              </Form>
+                                            </TableCell>
+                                            <TableCell>
+                                              <LoadingButton
+                                                variant="contained"
+                                                color="secondary"
                                                 className={clsx(classes.item)}
-                                                component={TextField}
-                                                name="duration"
-                                                type="number"
-                                                label="Duration"
-                                                inputProps={{ min: 10, max: 100, step: 1 }}
-                                              />
-                                            </Form>
-                                          </TableCell>
-                                          <TableCell>
-                                            <LoadingButton
-                                              variant="contained"
-                                              color="secondary"
-                                              className={clsx(classes.item)}
-                                              form={usr._id + "_banform"}
-                                              type="submit"
-                                              pending={isSubmitting}
-                                              sx={{ height: 50 }}
-                                            >
-                                              Ban
-                                            </LoadingButton>
-                                          </TableCell>
-                                        </>
-                                      )}
-                                    </Formik>
-                                  </TableRow>
-                                </TableBody>
-                              </Table>
-                            </Collapse>
-                          </TableCell>
-                        </TableRow>
-                      </>
-                    )})
+                                                form={usr._id + "_banform"}
+                                                type="submit"
+                                                pending={isSubmitting}
+                                                sx={{ height: 50 }}
+                                              >
+                                                Ban
+                                              </LoadingButton>
+                                            </TableCell>
+                                          </>
+                                        )}
+                                      </Formik>
+                                    </TableRow>
+                                  </TableBody>
+                                </Table>
+                              </Collapse>
+                            </TableCell>
+                          </TableRow>
+                        </React.Fragment>
+                      )
+                    })
                   }
                   {emptyRows > 0 && (
                     <TableRow style={{ height: 53 * emptyRows }} className={clsx(classes.hideLastBorder)}>
