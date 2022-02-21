@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 import { useApolloClient } from '@apollo/client';
 import { useMeQuery, useCreateUserMutation, MeDocument } from "../src/generated/graphql.ts";
 import { toErrorMap } from "../src/utils/toErrorMap";
@@ -45,7 +45,7 @@ const Register = ({}) => {
   else {
     if (loading) {
     } else if (data?.me) {
-      router.push("/overview")
+      router.push("/")
     }
   }
 
@@ -70,7 +70,7 @@ const Register = ({}) => {
             setErrors(toErrorMap(response.data.createUser.errors));
           } else if (response.data?.createUser.user) {
             await apolloClient.resetStore();
-            router.push("/overview");
+            router.push("/");
           }
         }}
       >

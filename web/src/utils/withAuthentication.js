@@ -18,7 +18,7 @@ export const withNoAuthentication = (getServerSidePropsFn) => ctx => {
     return {
       redirect: {
         permanent: false,
-        destination: "/overview"
+        destination: "/"
       }
     }
   }

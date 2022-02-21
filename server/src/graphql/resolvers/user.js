@@ -106,6 +106,49 @@ module.exports = {
         throw err;
       }
     },
+    updateUser: async(_, {userId, userInput}, context) => {
+      assertIsSignedIn(context);
+      assertIsAuth(context);
+
+      try {
+        const errors = validateRegister(userInput);
+        if (errors) {
+          return errors;
+        }
+
+        const existingUser = await User.findOne({ email: userInput.email });
+        if (existingUser) {
+          return {
+            errors: [
+              {
+                field: "email",
+                message: "email already exists"
+              }
+            ]
+          };
+        }
+        const hashedPassword = await bcrypt.hash(userInput.password, 12);
+
+        const user = await User.findByIdAndUpdate(userId, {
+          name: userInput.name,
+          email: userInput.email,
+          password: hashedPassword,
+          type: userInput.type
+        }, { new: true });
+
+        context.req.session.userType = user.type;
+        return {
+          user: {
+            ...user._doc,
+            password: null,
+            _id: user.id
+          }
+        };
+      } catch (err) {
+        console.log(err);
+        throw err;
+      }
+    },
     deleteUser: async(_, {userId}, context) => {
       assertIsSignedIn(context);
       assertIsAuth(context);

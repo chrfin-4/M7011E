@@ -3,7 +3,8 @@ const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
 const { loadSchemaSync, addResolversToSchema, GraphQLFileLoader, introspectSchema, stitchSchemas, } = require('graphql-tools');
 const { join } = require('path');
-const { fetch } = require('cross-fetch');
+const originalFetch = require('cross-fetch');
+const fetch = require('fetch-retry')(originalFetch)
 const { print } = require('graphql');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -85,6 +86,8 @@ const main = async () => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ query, variables }),
+      retryDelay: 1000,
+      retries: 5
     });
     return fetchResult.json();
   }

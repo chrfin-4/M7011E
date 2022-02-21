@@ -6,7 +6,7 @@ import { useMeQuery, useLogoutMutation } from '../src/generated/graphql.ts';
 import { isServer } from "../src/utils/isServer";
 import { useRouter } from "next/router";
 
-import { 
+import {
   AppBar,
   Avatar,
   Drawer,
@@ -24,12 +24,12 @@ import {
   ListItemText,
   ListItemIcon
 } from '@material-ui/core';
-import { 
+import {
   makeStyles,
   useTheme
 } from '@material-ui/core/styles';
-import { LoadingButton} from '@material-ui/lab';
-import { 
+import { LoadingButton } from '@material-ui/lab';
+import {
   Menu as MenuIcon,
   Home,
   Store,
@@ -42,7 +42,14 @@ const drawerWidth = 240;
 const useStyles = makeStyles((theme) => ({
   avatar: {
     backgroundColor: theme.palette.warning.main,
+  },
+  avatarButton: {
     marginRight: "10px",
+  },
+  input: {
+    display: 'none',
+  },
+  overlay: {
   },
   root: {
     flexGrow: 1,
@@ -100,6 +107,15 @@ export const NavBar = ({ window }) => {
 
   if (loading) return null;
 
+  const onImageChange = (event) => {
+    const files = event.target.files;
+    if (files && files[0]) {
+      let img = files[0];
+      console.log(img);
+    }
+    console.log(event);
+  }
+
   const drawer = (
     <div
       onClick={toggleDrawer(false)}
@@ -110,7 +126,7 @@ export const NavBar = ({ window }) => {
       <List>
         <ListItem button >
           <ListItemIcon>
-            <Home/>
+            <Home />
           </ListItemIcon>
           <NextLink href="/" >
             <ListItemText>
@@ -119,44 +135,44 @@ export const NavBar = ({ window }) => {
           </NextLink>
         </ListItem>
         {data?.me ?
-        (
-          <>
-            <ListItem button >
-              <ListItemIcon>
-                <Store/>
-              </ListItemIcon>
-              <NextLink href="/market" >
-                <ListItemText>
-                  Market
-                </ListItemText>
-              </NextLink>
-            </ListItem>
-            <ListItem button >
-              <ListItemIcon>
-                <ShowChart/>
-              </ListItemIcon>
-              <NextLink href="/stats" >
-                <ListItemText>
-                  Statistics
-                </ListItemText>
-              </NextLink>
-            </ListItem>
-            {data.me.type >= 2 ?
-              (
-                <ListItem button >
-                  <ListItemIcon>
-                    <Build/>
-                  </ListItemIcon>
-                  <NextLink href="/admin" >
-                    <ListItemText>
-                      Admin
-                    </ListItemText>
-                  </NextLink>
-                </ListItem>
-              ) : null
-            }
-          </>
-        ) : null
+          (
+            <>
+              <ListItem button >
+                <ListItemIcon>
+                  <Store />
+                </ListItemIcon>
+                <NextLink href="/market" >
+                  <ListItemText>
+                    Market
+                  </ListItemText>
+                </NextLink>
+              </ListItem>
+              <ListItem button >
+                <ListItemIcon>
+                  <ShowChart />
+                </ListItemIcon>
+                <NextLink href="/stats" >
+                  <ListItemText>
+                    Statistics
+                  </ListItemText>
+                </NextLink>
+              </ListItem>
+              {data.me.type >= 2 ?
+                (
+                  <ListItem button >
+                    <ListItemIcon>
+                      <Build />
+                    </ListItemIcon>
+                    <NextLink href="/admin" >
+                      <ListItemText>
+                        Admin
+                      </ListItemText>
+                    </NextLink>
+                  </ListItem>
+                ) : null
+              }
+            </>
+          ) : null
         }
       </List>
     </div>
@@ -186,23 +202,28 @@ export const NavBar = ({ window }) => {
             {!data?.me ?
               (
                 <>
-                  <Box className={clsx(classes.filler)}/>
+                  <Box className={clsx(classes.filler)} />
                   <NextLink href="/login" >
                     <Button variant="contained" disableElevation className={clsx(classes.linkButton)}>
-                        Login
+                      Login
                     </Button>
                   </NextLink>
                   <NextLink href="/register" >
                     <Button variant="contained" disableElevation className={clsx(classes.linkButton)}>
-                        Register
+                      Register
                     </Button>
                   </NextLink>
                 </>
-              ) : 
+              ) :
               (
                 <>
-                  <Box className={clsx(classes.filler)}/>
-                  <Avatar className={classes.avatar} alt={data.me.name} />
+                  <Box className={clsx(classes.filler)} />
+                  <input accept="image/*" className={classes.input} id="icon-button-file" type="file" onChange={onImageChange} />
+                  <label htmlFor="icon-button-file">
+                    <IconButton aria-label="Avatar" className={classes.avatarButton} component="span" >
+                      <Avatar className={classes.avatar} alt={data.me.name} />
+                    </IconButton>
+                  </label>
                   <LoadingButton
                     variant="contained" disableElevation className={clsx(classes.linkButton)}
                     color="secondary"

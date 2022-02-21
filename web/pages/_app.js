@@ -66,6 +66,6 @@ const MyApp = (props) => {
       </ThemeProvider>
     </React.Fragment>
   );
-}
+};
 
 export default withApollo({ ssr: false })(MyApp);
