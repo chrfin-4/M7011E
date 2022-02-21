@@ -1,0 +1,9 @@
+{
+    "env": {
+        "MONGO_CONNECTION": "connection string",
+        "SIM_ENDPOINT": "http://localhost:8081/graphql",
+        "CRYPT_KEY": "somesupersecretkey",
+        "CORS_ORIGIN": "http://localhost:3000",
+        "SRV_PORT": "8080"
+    }
+}

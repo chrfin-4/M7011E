@@ -22,6 +22,7 @@
     "socket.io-client": "^3.1.0"
   },
   "scripts": {
+    "setup": "cp example.env.local .env.local",
     "dev": "next",
     "build": "next build",
     "start": "next start",

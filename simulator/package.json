@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "setup": "cp example.nodemon.json nodemon.json",
     "test": "jasmine",
     "dev": "nodemon app.js",
     "start": "node app.js"

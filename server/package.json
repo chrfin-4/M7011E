@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "setup": "cp example.nodemon.json nodemon.json",
     "dev": "nodemon src/app.js",
     "start": "node src/app.js"
   },
@@ -25,6 +26,7 @@
     "express": "^4.17.1",
     "express-graphql": "^0.12.0",
     "express-session": "^1.17.1",
+    "fetch-retry": "^5.0.1",
     "graphql": "^15.4.0",
     "graphql-tools": "^7.0.2",
     "ioredis": "^4.19.4",

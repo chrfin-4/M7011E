@@ -1,0 +1,24 @@
+{
+  "name": "m7011e",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup:simulator": "cd simulator && yarn run setup",
+    "setup:server": "cd server && yarn run setup",
+    "setup:web": "cd web && yarn run setup",
+    "setup": "concurrently \"yarn:setup:*\"",
+    "dev:simulator": "cd simulator && yarn run dev",
+    "dev:server": "cd server && yarn run dev",
+    "dev:web": "cd web && yarn run dev",
+    "dev": "concurrently \"yarn:dev:*\"",
+    "gen-web": "cd web && yarn run gen",
+    "gen": "concurrently \"yarn:gen:*\"",
+    "install:simulator": "cd simulator && yarn install",
+    "install:server": "cd server && yarn install",
+    "install:web": "cd web && yarn install",
+    "postinstall": "concurrently -m1 \"yarn:install:*\""
+  },
+  "devDependencies": {
+    "concurrently": "^7.0.0"
+  }
+}

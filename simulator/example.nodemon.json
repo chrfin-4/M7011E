@@ -1,0 +1,6 @@
+{
+    "env": {
+        "MONGO_CONNECTION": "connection string",
+        "SIM_PORT": 8081
+    }
+}
