@@ -1,12 +1,14 @@
-mutation UpdateUser($userInput: UserInput) {
-  updateUser(userInput: $userInput) {
+mutation UpdateUser($userId: String!, $userInput: UserInput) {
+  updateUser(userId: $userId, userInput: $userInput) {
     errors {
       field
       message
     }
-    me {
+    user {
+      _id
       name
       email
+      type
     }
   }
 }

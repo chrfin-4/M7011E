@@ -11,7 +11,7 @@
     "dev:server": "cd server && yarn run dev",
     "dev:web": "cd web && yarn run dev",
     "dev": "concurrently \"yarn:dev:*\"",
-    "gen-web": "cd web && yarn run gen",
+    "gen:web": "cd web && yarn run gen",
     "gen": "concurrently \"yarn:gen:*\"",
     "install:simulator": "cd simulator && yarn install",
     "install:server": "cd server && yarn install",

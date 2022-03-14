@@ -1,6 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types';
 import { withApollo } from "../src/utils/withApollo";
+import UpdateDialog from '../components/UpdateDialog';
 import clsx from 'clsx';
 import {
   Box,
@@ -38,6 +39,7 @@ import {
   useProsumerDataQuery,
   useProsumersDataQuery, 
   useDeleteUserMutation,
+  useUpdateUserMutation,
   useBanProducerMutation,
   useSetChargeRatioMutation,
   useTurnProductionOnMutation,
@@ -197,186 +199,6 @@ BatteryRow.propTypes = {
   capacity: PropTypes.number,
 };
 
-function UserRow(props) {
-  const { usr, online, setUser, setHouse } = props;
-  const classes = useStyles();
-
-  let hasHouse = usr.prosumerData.houseId !== undefined && usr.prosumerData.houseId !== null;
-  return (
-    <>
-      <TableRow key={usr._id + "_1"}>
-        <TableCell>
-          <IconButton
-            aria-label="expand row"
-            size="small"
-            onClick={() => {
-              if (!user) {
-                setUser(usr._id);
-                if (hasHouse) {
-                  setHouse(usr.prosumerData.houseId);
-                }
-              } else {
-                setUser(null);
-                setHouse(null);
-              }
-            }}
-            // onClick={() => userDispatch({ type: 'toggle', payload: usr._id })}
-          >
-            {user === usr._id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-          </IconButton>
-          <Badge
-            overlap="circular"
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
-            }}
-            variant="dot"
-            sx={{ marginRight: "10px" }}
-            classes={{
-              badge: (online.includes(usr._id) ? classes.usrOnline : classes.usrOffline),
-            }}
-          >
-            <Avatar className={classes.avatar} alt={usr.name} />
-          </Badge>
-          {usr._id === meData.me._id ? usr.name + " (YOU)" : usr.name}
-        </TableCell>
-        <TableCell>
-          {online.includes(usr._id) ? "ONLINE" : "OFFLINE"}
-        </TableCell>
-        <TableCell>
-          {bState.hasBlackout[parseInt(usr.prosumerData.houseId)]?.blackout ? "BLACKOUT" : "No"}
-        </TableCell>
-        <TableCell>
-          {hasHouse ? "House " + usr.prosumerData.houseId : "No house"}
-        </TableCell>
-      </TableRow>
-      <TableRow key={usr._id + "_2"} className={clsx(classes.hideLastBorder)}>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
-          <Collapse in={user === usr._id} timeout='auto'>
-            <Table size="small" aria-label="battery">
-              <TableHead>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell>Stat</TableCell>
-                  <TableCell align="right">Data</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Banned</TableCell>
-                  <TableCell align="right">{hasHouse ? (pdState?.banned ? "BANNED" : "No") : "No house"}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Banned</TableCell>
-                  <TableCell align="right">{hasHouse ? (pdState?.banDuration / 1000).toFixed(0) : "No house"}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Blackout</TableCell>
-                  <TableCell align="right">{hasHouse ? (pdState?.blackout ? "BLACKOUT" : "No") : "No house"}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Power production</TableCell>
-                  <TableCell align="right">{hasHouse ? pdState?.powerProduction.toFixed(3) : "No house"}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Power consumption</TableCell>
-                  <TableCell align="right">{hasHouse ? pdState?.powerConsumption.toFixed(3) : "No house"}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Net production</TableCell>
-                  <TableCell align="right">{hasHouse ? (pdState?.powerProduction - pdState?.powerConsumption).toFixed(3) : "No house"}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Charge ratio</TableCell>
-                  <TableCell align="right">{hasHouse ? pdState?.chargeRatio.toFixed(3) : "No house"}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Discharge ratio</TableCell>
-                  <TableCell align="right">{hasHouse ? pdState?.dischargeRatio.toFixed(3) : "No house"}</TableCell>
-                </TableRow>
-                {hasHouse ? (
-                  <BatteryRow charge={pdState?.battery.charge} capacity={pdState?.battery.capacity}/>
-                ) : (
-                  <TableRow className={clsx(classes.hideLastBorder)}>
-                    <TableCell>Battery level</TableCell>
-                    <TableCell align="right">No house</TableCell>
-                  </TableRow>
-                )}
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      className={clsx(classes.item)}
-                      onClick={async () => {
-                        await deleteUser({
-                          variables: {
-                            userId: usr._id,
-                          }
-                        });
-                        await apolloClient.resetStore();
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  </TableCell>
-                  <Formik
-                    initialValues={{ duration: 0 }}
-                    onSubmit={async (values) => {
-                      const response = await banProducer({
-                        variables: {
-                          id: usr.prosumerData.houseId,
-                          duration: values.duration * 1000
-                        }
-                      });
-                    }}
-                  >
-                    {({ isSubmitting }) => (
-                      <>
-                        <TableCell>
-                          <Form id={usr._id + "_banform"}>
-                            <Field
-                              className={clsx(classes.item)}
-                              component={TextField}
-                              name="duration"
-                              type="number"
-                              label="Duration"
-                              inputProps={{ min: 10, max: 100, step: 1 }}
-                            />
-                          </Form>
-                        </TableCell>
-                        <TableCell>
-                          <LoadingButton
-                            variant="contained"
-                            color="secondary"
-                            className={clsx(classes.item)}
-                            form={usr._id + "_banform"}
-                            type="submit"
-                            pending={isSubmitting}
-                            sx={{ height: 50 }}
-                          >
-                            Ban
-                          </LoadingButton>
-                        </TableCell>
-                      </>
-                    )}
-                  </Formik>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </Collapse>
-        </TableCell>
-      </TableRow>
-    </>
-  )
-};
-
-UserRow.propTypes = {
-  usr: PropTypes.object.isRequired,
-  online: PropTypes.array.isRequired,
-  setUser: PropTypes.func.isRequired,
-  setHouse: PropTypes.func.isRequired,
-};
-
 const Admin = (ctx) => {
   const classes = useStyles();
   const router = useRouter();
@@ -384,6 +206,7 @@ const Admin = (ctx) => {
 
   // Mutations
   const [deleteUser] = useDeleteUserMutation();
+  const [updateUser] = useUpdateUserMutation();
   const [banProducer] = useBanProducerMutation();
   const [setChargeRatio] = useSetChargeRatioMutation();
   const [setProductionLevel] = useSetProductionLevelMutation();
@@ -395,6 +218,15 @@ const Admin = (ctx) => {
   const [house, setHouse] = React.useState(null);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [editUser, setEditUser] = React.useState({
+    open: false,
+    user: {
+      name: "",
+      email: "",
+      password: "",
+      type: 0,
+    }
+  });
 
   // Queries
   const { data: meData, loading: meLoading } = useMeQuery({
@@ -423,6 +255,7 @@ const Admin = (ctx) => {
     pollInterval: 1000,
   });
 
+  // Oh god this is so janky, just whyyy??
   if (meLoading) return null;
   if (isServer()) { // Serverside
     if (!meData?.me) return null; // If not signed in
@@ -464,6 +297,23 @@ const Admin = (ctx) => {
 
   return (
     <Box sx={{ overflow: "hidden", mx: 2 }}>
+      <UpdateDialog
+        open={editUser.open}
+        user={editUser.user}
+        close={() => {
+          setEditUser(prevState => {
+            return { open: false, user: prevState.user }
+          });
+        }}
+        update={ async (userId, values) => {
+          return updateUser({
+            variables: {
+              userId: userId,
+              userInput: values
+            }
+          })
+        }}
+      />
       <Grid container spacing={2}>
         <Grid item xs={12} md={6} lg={4}>
           <TableContainer component={Paper} className={clsx(classes.paper)}>
@@ -681,6 +531,7 @@ const Admin = (ctx) => {
                     <TableCell className={clsx(classes.tableCell)}>Online</TableCell>
                     <TableCell className={clsx(classes.tableCell)}>Blackout</TableCell>
                     <TableCell className={clsx(classes.tableCell)}>House</TableCell>
+                    <TableCell className={clsx(classes.tableCell)}>Edit</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -740,6 +591,27 @@ const Admin = (ctx) => {
                             </TableCell>
                             <TableCell>
                               {hasHouse ? "House " + usr.prosumerData.houseId : "No house"}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="contained"
+                                color="secondary"
+                                className={clsx(classes.item)}
+                                onClick={() => {
+                                  setEditUser({
+                                    open: true,
+                                    user: {
+                                      userId: usr._id,
+                                      name: usr.name,
+                                      email: usr.email,
+                                      type: usr.type,
+                                    }
+                                  });
+                                  console.warn(editUser);
+                                }}
+                              >
+                                Edit
+                              </Button>
                             </TableCell>
                           </TableRow>
                           <TableRow className={clsx(classes.hideLastBorder)}>

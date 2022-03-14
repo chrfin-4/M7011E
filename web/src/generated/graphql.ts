@@ -41,6 +41,7 @@ export type QueryProsumerStateArgs = {
 export type Mutation = {
   __typename?: 'Mutation';
   createUser: UserResponse;
+  updateUser: UserResponse;
   deleteUser?: Maybe<Scalars['Boolean']>;
   login: UserResponse;
   logout?: Maybe<Scalars['Boolean']>;
@@ -61,6 +62,12 @@ export type Mutation = {
 
 
 export type MutationCreateUserArgs = {
+  userInput?: Maybe<UserInput>;
+};
+
+
+export type MutationUpdateUserArgs = {
+  userId: Scalars['String'];
   userInput?: Maybe<UserInput>;
 };
 
@@ -399,6 +406,26 @@ export type TurnProductionOnMutation = (
   ) }
 );
 
+export type UpdateUserMutationVariables = Exact<{
+  userId: Scalars['String'];
+  userInput?: Maybe<UserInput>;
+}>;
+
+
+export type UpdateUserMutation = (
+  { __typename?: 'Mutation' }
+  & { updateUser: (
+    { __typename?: 'UserResponse' }
+    & { errors?: Maybe<Array<Maybe<(
+      { __typename?: 'FieldError' }
+      & Pick<FieldError, 'field' | 'message'>
+    )>>>, user?: Maybe<(
+      { __typename?: 'User' }
+      & Pick<User, '_id' | 'name' | 'email' | 'type'>
+    )> }
+  ) }
+);
+
 export type HasBlackoutQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -470,7 +497,7 @@ export type OwnedQuery = (
   { __typename?: 'Query' }
   & { users: Array<(
     { __typename?: 'User' }
-    & Pick<User, '_id' | 'name' | 'type'>
+    & Pick<User, '_id' | 'name' | 'email' | 'type'>
     & { prosumerData?: Maybe<(
       { __typename?: 'ProsumerData' }
       & Pick<ProsumerData, 'houseId' | 'banned'>
@@ -948,6 +975,48 @@ export function useTurnProductionOnMutation(baseOptions?: Apollo.MutationHookOpt
 export type TurnProductionOnMutationHookResult = ReturnType<typeof useTurnProductionOnMutation>;
 export type TurnProductionOnMutationResult = Apollo.MutationResult<TurnProductionOnMutation>;
 export type TurnProductionOnMutationOptions = Apollo.BaseMutationOptions<TurnProductionOnMutation, TurnProductionOnMutationVariables>;
+export const UpdateUserDocument = gql`
+    mutation UpdateUser($userId: String!, $userInput: UserInput) {
+  updateUser(userId: $userId, userInput: $userInput) {
+    errors {
+      field
+      message
+    }
+    user {
+      _id
+      name
+      email
+      type
+    }
+  }
+}
+    `;
+export type UpdateUserMutationFn = Apollo.MutationFunction<UpdateUserMutation, UpdateUserMutationVariables>;
+
+/**
+ * __useUpdateUserMutation__
+ *
+ * To run a mutation, you first call `useUpdateUserMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateUserMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateUserMutation, { data, loading, error }] = useUpdateUserMutation({
+ *   variables: {
+ *      userId: // value for 'userId'
+ *      userInput: // value for 'userInput'
+ *   },
+ * });
+ */
+export function useUpdateUserMutation(baseOptions?: Apollo.MutationHookOptions<UpdateUserMutation, UpdateUserMutationVariables>) {
+        return Apollo.useMutation<UpdateUserMutation, UpdateUserMutationVariables>(UpdateUserDocument, baseOptions);
+      }
+export type UpdateUserMutationHookResult = ReturnType<typeof useUpdateUserMutation>;
+export type UpdateUserMutationResult = Apollo.MutationResult<UpdateUserMutation>;
+export type UpdateUserMutationOptions = Apollo.BaseMutationOptions<UpdateUserMutation, UpdateUserMutationVariables>;
 export const HasBlackoutDocument = gql`
     query HasBlackout {
   hasBlackout: prosumerStates {
@@ -1132,6 +1201,7 @@ export const OwnedDocument = gql`
   users {
     _id
     name
+    email
     type
     prosumerData {
       houseId

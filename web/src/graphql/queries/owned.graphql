@@ -2,6 +2,7 @@ query Owned {
   users {
     _id
     name
+    email
     type
     prosumerData {
       houseId

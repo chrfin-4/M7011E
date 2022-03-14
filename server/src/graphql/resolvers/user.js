@@ -2,6 +2,7 @@ const User = require("../../models/user");
 const { RedisClient} = require('redis');
 const { promisify } = require('util');
 const { validateRegister } = require("../../util/validateRegister");
+const { validateUpdate } = require("../../util/validateUpdate");
 const bcrypt = require('bcryptjs');
 
 const redis = new RedisClient(process.env.REDIS_URL);
@@ -111,13 +112,13 @@ module.exports = {
       assertIsAuth(context);
 
       try {
-        const errors = validateRegister(userInput);
+        const errors = validateUpdate(userInput);
         if (errors) {
           return errors;
         }
 
         const existingUser = await User.findOne({ email: userInput.email });
-        if (existingUser) {
+        if (existingUser && existingUser.id != userId) {
           return {
             errors: [
               {
@@ -127,12 +128,17 @@ module.exports = {
             ]
           };
         }
-        const hashedPassword = await bcrypt.hash(userInput.password, 12);
+
+        const hashedPassword = (!!userInput.password) ? await bcrypt.hash(userInput.password, 12) : undefined;
+
+        console.log({
+          name: userInput.name,
+        });
 
         const user = await User.findByIdAndUpdate(userId, {
           name: userInput.name,
           email: userInput.email,
-          password: hashedPassword,
+          ...(!!hashedPassword && { password: hashedPassword }),
           type: userInput.type
         }, { new: true });
 
