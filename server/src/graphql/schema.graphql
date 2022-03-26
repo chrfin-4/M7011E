@@ -1,3 +1,8 @@
+# The implementation for this scalar is provided by the
+# 'GraphQLUpload' export from the 'graphql-upload' package
+# in the resolver map below.
+scalar Upload
+
 type Query {
   online: [User!]!
   users: [User!]!
@@ -15,6 +20,8 @@ type Mutation {
 
   assignProsumer(prosumerId: Int!): Boolean
   unassignProsumer: Boolean
+
+  setProfilePicture(file: Upload!): UploadResponse!
 }
 
 type FieldError {
@@ -68,4 +75,15 @@ input ProsumerInput {
 input PowerplantInput {
   powerplandId: String!
   name: String!
+}
+
+type File {
+  filename: String!
+  mimeype: String!
+  encoding: String!
+}
+
+type UploadResponse {
+  errors: [FieldError]
+  file: File
 }

@@ -2,6 +2,7 @@ const { __prod__, COOKIE_NAME } = require('./constants');
 const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
 const { loadSchemaSync, addResolversToSchema, GraphQLFileLoader, introspectSchema, stitchSchemas, } = require('graphql-tools');
+const { graphqlUploadExpress } = require('graphql-upload');
 const { join } = require('path');
 const originalFetch = require('cross-fetch');
 const fetch = require('fetch-retry')(originalFetch)
@@ -109,12 +110,18 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema: gatewaySchema,
+    uploads: false,
     context: ({ req, res}) => ({
       req,
       res,
       redis
     }),
   });
+
+  app.use(graphqlUploadExpress({
+    maxFileSize: 10000000,
+    maxFiles: 1,
+  }));
 
   apolloServer.applyMiddleware({
     app,

@@ -1,0 +1,13 @@
+mutation SetProfilePicture($file: Upload!) {
+  setProfilePicture(file: $file) {
+    errors {
+      field
+      message
+    }
+    file {
+      filename
+      mimeype
+      encoding
+    }
+  }
+}

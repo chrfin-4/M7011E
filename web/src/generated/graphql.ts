@@ -11,6 +11,8 @@ export type Scalars = {
   Boolean: boolean;
   Int: number;
   Float: number;
+  /** The `Upload` scalar type represents a file upload. */
+  Upload: any;
 };
 
 export type Query = {
@@ -47,6 +49,7 @@ export type Mutation = {
   logout?: Maybe<Scalars['Boolean']>;
   assignProsumer?: Maybe<Scalars['Boolean']>;
   unassignProsumer?: Maybe<Scalars['Boolean']>;
+  setProfilePicture: UploadResponse;
   setChargeRatio: Prosumer;
   setDischargeRatio: Prosumer;
   banProducer: Prosumer;
@@ -85,6 +88,11 @@ export type MutationLoginArgs = {
 
 export type MutationAssignProsumerArgs = {
   prosumerId: Scalars['Int'];
+};
+
+
+export type MutationSetProfilePictureArgs = {
+  file: Scalars['Upload'];
 };
 
 
@@ -145,6 +153,7 @@ export type MutationSetSimulationParametersArgs = {
   speed?: Maybe<Scalars['Float']>;
 };
 
+
 export type FieldError = {
   __typename?: 'FieldError';
   field: Scalars['String'];
@@ -202,6 +211,19 @@ export type ProsumerInput = {
 export type PowerplantInput = {
   powerplandId: Scalars['String'];
   name: Scalars['String'];
+};
+
+export type File = {
+  __typename?: 'File';
+  filename: Scalars['String'];
+  mimeype: Scalars['String'];
+  encoding: Scalars['String'];
+};
+
+export type UploadResponse = {
+  __typename?: 'UploadResponse';
+  errors?: Maybe<Array<Maybe<FieldError>>>;
+  file?: Maybe<File>;
 };
 
 export type Prosumer = {
@@ -381,6 +403,25 @@ export type SetProductionLevelMutation = (
   & { setProductionLevel: (
     { __typename?: 'Prosumer' }
     & Pick<Prosumer, 'id' | 'productionStatus' | 'nextProductionTransition'>
+  ) }
+);
+
+export type SetProfilePictureMutationVariables = Exact<{
+  file: Scalars['Upload'];
+}>;
+
+
+export type SetProfilePictureMutation = (
+  { __typename?: 'Mutation' }
+  & { setProfilePicture: (
+    { __typename?: 'UploadResponse' }
+    & { errors?: Maybe<Array<Maybe<(
+      { __typename?: 'FieldError' }
+      & Pick<FieldError, 'field' | 'message'>
+    )>>>, file?: Maybe<(
+      { __typename?: 'File' }
+      & Pick<File, 'filename' | 'mimeype' | 'encoding'>
+    )> }
   ) }
 );
 
@@ -913,6 +954,46 @@ export function useSetProductionLevelMutation(baseOptions?: Apollo.MutationHookO
 export type SetProductionLevelMutationHookResult = ReturnType<typeof useSetProductionLevelMutation>;
 export type SetProductionLevelMutationResult = Apollo.MutationResult<SetProductionLevelMutation>;
 export type SetProductionLevelMutationOptions = Apollo.BaseMutationOptions<SetProductionLevelMutation, SetProductionLevelMutationVariables>;
+export const SetProfilePictureDocument = gql`
+    mutation SetProfilePicture($file: Upload!) {
+  setProfilePicture(file: $file) {
+    errors {
+      field
+      message
+    }
+    file {
+      filename
+      mimeype
+      encoding
+    }
+  }
+}
+    `;
+export type SetProfilePictureMutationFn = Apollo.MutationFunction<SetProfilePictureMutation, SetProfilePictureMutationVariables>;
+
+/**
+ * __useSetProfilePictureMutation__
+ *
+ * To run a mutation, you first call `useSetProfilePictureMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSetProfilePictureMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [setProfilePictureMutation, { data, loading, error }] = useSetProfilePictureMutation({
+ *   variables: {
+ *      file: // value for 'file'
+ *   },
+ * });
+ */
+export function useSetProfilePictureMutation(baseOptions?: Apollo.MutationHookOptions<SetProfilePictureMutation, SetProfilePictureMutationVariables>) {
+        return Apollo.useMutation<SetProfilePictureMutation, SetProfilePictureMutationVariables>(SetProfilePictureDocument, baseOptions);
+      }
+export type SetProfilePictureMutationHookResult = ReturnType<typeof useSetProfilePictureMutation>;
+export type SetProfilePictureMutationResult = Apollo.MutationResult<SetProfilePictureMutation>;
+export type SetProfilePictureMutationOptions = Apollo.BaseMutationOptions<SetProfilePictureMutation, SetProfilePictureMutationVariables>;
 export const TurnProductionOffDocument = gql`
     mutation TurnProductionOff {
   turnProductionOff(id: -1) {

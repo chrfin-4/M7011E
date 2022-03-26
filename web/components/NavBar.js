@@ -2,7 +2,11 @@ import React from 'react';
 import clsx from 'clsx';
 import NextLink from 'next/link';
 import { useApolloClient } from '@apollo/client';
-import { useMeQuery, useLogoutMutation } from '../src/generated/graphql.ts';
+import {
+  useMeQuery,
+  useLogoutMutation,
+  useSetProfilePictureMutation,
+} from '../src/generated/graphql.ts';
 import { isServer } from "../src/utils/isServer";
 import { useRouter } from "next/router";
 
@@ -92,6 +96,7 @@ export const NavBar = ({ window }) => {
   const classes = useStyles();
   const theme = useTheme();
   const [logout, { loading: logoutFetching }] = useLogoutMutation();
+  const [setProfilePicture] = useSetProfilePictureMutation();
   const apolloClient = useApolloClient();
   const { data, loading } = useMeQuery({
     skip: isServer(),
@@ -107,13 +112,15 @@ export const NavBar = ({ window }) => {
 
   if (loading) return null;
 
-  const onImageChange = (event) => {
-    const files = event.target.files;
-    if (files && files[0]) {
-      let img = files[0];
-      console.log(img);
+  const onImageChange = ({ target: { validity, files: [file] }}) => {
+    if (validity.valid) {
+      console.log(file);
+      setProfilePicture({
+        variables: {
+          file: file
+        }
+      });
     }
-    console.log(event);
   }
 
   const drawer = (
