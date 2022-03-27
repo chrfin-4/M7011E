@@ -1,27 +1,43 @@
-const { __prod__, COOKIE_NAME } = require('./constants');
+// Web
 const express = require('express');
-const { ApolloServer } = require('apollo-server-express');
-const { loadSchemaSync, addResolversToSchema, GraphQLFileLoader, introspectSchema, stitchSchemas, } = require('graphql-tools');
-const { graphqlUploadExpress } = require('graphql-upload');
-const { join } = require('path');
-const originalFetch = require('cross-fetch');
-const fetch = require('fetch-retry')(originalFetch)
-const { print } = require('graphql');
-const cors = require('cors');
-const mongoose = require('mongoose');
-const graphQlResolvers = require('./graphql/resolvers/index');
-const { RedisClient} = require('redis');
 const session = require('express-session');
-const connectRedis = require('connect-redis');
+const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
+const originalFetch = require('cross-fetch');
+const fetch = require('fetch-retry')(originalFetch)
+
+// GraphQL
+const { ApolloServer } = require('apollo-server-express');
+const { addResolversToSchema, } = require('@graphql-tools/schema');
+const { loadSchemaSync } = require('@graphql-tools/load')
+const { introspectSchema } = require('@graphql-tools/wrap')
+const { stitchSchemas } = require('@graphql-tools/stitch')
+const { GraphQLFileLoader } = require('@graphql-tools/graphql-file-loader')
+const { graphqlUploadExpress } = require('graphql-upload');
+const { print } = require('graphql');
+
+// Os
+const { join } = require('path');
+
+// Db and store
+const mongoose = require('mongoose');
+const { createClient } = require('redis');
+const connectRedis = require('connect-redis');
+
+// Local includes
+const graphQlResolvers = require('./graphql/resolvers/index');
+const { __prod__, COOKIE_NAME } = require('./constants');
 
 
 const main = async () => {
+  console.log("Starting Exerge server.");
   const app = express();
 
   const RedisStore = connectRedis(session);
-  const redis = new RedisClient(process.env.REDIS_URL);
+  const redis = createClient({
+    url: process.env.REDIS_URL,
+  });
   app.set("trust proxy", 1);
   app.use(
     cors({
@@ -48,6 +64,9 @@ const main = async () => {
       resave: false,
     })
   );
+
+  // Start http server
+  server = http.createServer(app);
 
   /*
   app.use(bodyParser.json());
@@ -118,6 +137,8 @@ const main = async () => {
     }),
   });
 
+  await apolloServer.start();
+
   app.use(graphqlUploadExpress({
     maxFileSize: 10000000,
     maxFiles: 1,
@@ -129,7 +150,6 @@ const main = async () => {
   });
 
   // Socket io
-  server = http.createServer(app);
   io = socketIo(server, {
     cors: {
       origin: process.env.CORS_ORIGIN,
@@ -163,6 +183,10 @@ const main = async () => {
     });
 }
 
-main().catch((err) => {
-  console.log(err);
-});
+main()
+  .then(() => {
+    console.log("Finished starting Exerge server.");
+  })
+  .catch((err) => {
+    console.log(err);
+  });

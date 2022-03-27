@@ -1,6 +1,7 @@
 const express = require('express');
 const { graphqlHTTP } = require('express-graphql');
-const { loadSchemaSync, GraphQLFileLoader } = require('graphql-tools');
+const { loadSchemaSync } = require('@graphql-tools/load');
+const { GraphQLFileLoader } = require('@graphql-tools/graphql-file-loader');
 const graphQlResolvers = require('./graphql/resolvers/index')
 const mongoose = require('mongoose');
 const model = require('./model.js');

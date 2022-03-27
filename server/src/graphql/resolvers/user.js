@@ -1,11 +1,11 @@
 const User = require("../../models/user");
-const { RedisClient} = require('redis');
+const { createClient } = require('redis');
 const { promisify } = require('util');
 const { validateRegister } = require("../../util/validateRegister");
 const { validateUpdate } = require("../../util/validateUpdate");
 const bcrypt = require('bcryptjs');
 
-const redis = new RedisClient(process.env.REDIS_URL);
+const redis = createClient({url: process.env.REDIS_URL});
 const keysAsync = promisify(redis.keys).bind(redis);
 
 function assertIsSignedIn(context) {
