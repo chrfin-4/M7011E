@@ -1473,21 +1473,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"m7011e@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "m7011e@workspace:."
-  dependencies:
-    "@graphql-tools/graphql-file-loader": ^7.3.7
-    "@graphql-tools/load": ^7.5.5
-    express: ^4.17.3
-    express-graphql: ^0.12.0
-    graphql: ^16.3.0
-    jasmine: ^4.0.2
-    mongoose: ^6.2.8
-    nodemon: ^2.0.15
-  languageName: unknown
-  linkType: soft
-
 "make-dir@npm:^3.0.0":
   version: 3.1.0
   resolution: "make-dir@npm:3.1.0"
@@ -2307,6 +2292,21 @@ __metadata:
   checksum: a2f098f247adc367dffc27845853e9959b9e88b01cb301658cfe4194352d8d2bb32e18467c786a7fe15f1d44b233ea35633d076d5e737870b7139949d1ab6318
   languageName: node
   linkType: hard
+
+"simulator@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "simulator@workspace:."
+  dependencies:
+    "@graphql-tools/graphql-file-loader": ^7.3.7
+    "@graphql-tools/load": ^7.5.5
+    express: ^4.17.3
+    express-graphql: ^0.12.0
+    graphql: ^16.3.0
+    jasmine: ^4.0.2
+    mongoose: ^6.2.8
+    nodemon: ^2.0.15
+  languageName: unknown
+  linkType: soft
 
 "slash@npm:^3.0.0":
   version: 3.0.0

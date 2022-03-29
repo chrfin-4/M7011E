@@ -1,6 +1,5 @@
 import React from 'react'
 import PropTypes from 'prop-types';
-import { withApollo } from "../src/utils/withApollo";
 import UpdateDialog from '../components/UpdateDialog';
 import clsx from 'clsx';
 import {
@@ -762,4 +761,4 @@ const Admin = (ctx) => {
   )
 }
 
-export default withApollo({ssr: true})(Admin);
+export default Admin;

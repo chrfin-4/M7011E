@@ -1,9 +1,11 @@
 import { gql } from '@apollo/client';
 import * as Apollo from '@apollo/client';
 export type Maybe<T> = T | null;
+export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
+const defaultOptions = {} as const;
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
   ID: string;
@@ -15,63 +17,73 @@ export type Scalars = {
   Upload: any;
 };
 
-export type Query = {
-  __typename?: 'Query';
-  online: Array<User>;
-  users: Array<User>;
-  user?: Maybe<User>;
-  me?: Maybe<User>;
-  prosumerStates: Array<Prosumer>;
-  prosumerState?: Maybe<Prosumer>;
-  weather: Weather;
-  marketDemand: Scalars['Float'];
-  currentPrice: Scalars['Float'];
-  modeledPrice?: Maybe<Scalars['Float']>;
-  simulation?: Maybe<Simulation>;
+export type Battery = {
+  __typename?: 'Battery';
+  capacity: Scalars['Float'];
+  charge: Scalars['Float'];
 };
 
-
-export type QueryUserArgs = {
-  id: Scalars['ID'];
+export type FieldError = {
+  __typename?: 'FieldError';
+  field: Scalars['String'];
+  message: Scalars['String'];
 };
 
+export type File = {
+  __typename?: 'File';
+  encoding: Scalars['String'];
+  filename: Scalars['String'];
+  mimeype: Scalars['String'];
+};
 
-export type QueryProsumerStateArgs = {
-  id: Scalars['ID'];
+export type ManagerData = {
+  __typename?: 'ManagerData';
+  powerplants?: Maybe<Array<Powerplant>>;
 };
 
 export type Mutation = {
   __typename?: 'Mutation';
+  advanceBy: Simulation;
+  assignProsumer?: Maybe<Scalars['Boolean']>;
+  banProducer: Prosumer;
   createUser: UserResponse;
-  updateUser: UserResponse;
   deleteUser?: Maybe<Scalars['Boolean']>;
   login: UserResponse;
   logout?: Maybe<Scalars['Boolean']>;
-  assignProsumer?: Maybe<Scalars['Boolean']>;
-  unassignProsumer?: Maybe<Scalars['Boolean']>;
-  setProfilePicture: UploadResponse;
   setChargeRatio: Prosumer;
   setDischargeRatio: Prosumer;
-  banProducer: Prosumer;
-  turnProductionOn: Prosumer;
-  turnProductionOff: Prosumer;
-  setProductionLevel: Prosumer;
   setElectricityPrice: Prosumer;
+  setProductionLevel: Prosumer;
+  setProfilePicture: UploadResponse;
+  setSimulationParameters: Simulation;
   startSimulation: Simulation;
   stopSimulation: Simulation;
-  advanceBy: Simulation;
-  setSimulationParameters: Simulation;
+  turnProductionOff: Prosumer;
+  turnProductionOn: Prosumer;
+  unassignProsumer?: Maybe<Scalars['Boolean']>;
+  updateUser: UserResponse;
+};
+
+
+export type MutationAdvanceByArgs = {
+  interval: Scalars['Int'];
+  steps?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type MutationAssignProsumerArgs = {
+  prosumerId: Scalars['Int'];
+};
+
+
+export type MutationBanProducerArgs = {
+  duration: Scalars['Int'];
+  id: Scalars['ID'];
 };
 
 
 export type MutationCreateUserArgs = {
-  userInput?: Maybe<UserInput>;
-};
-
-
-export type MutationUpdateUserArgs = {
-  userId: Scalars['String'];
-  userInput?: Maybe<UserInput>;
+  userInput?: InputMaybe<UserInput>;
 };
 
 
@@ -83,16 +95,6 @@ export type MutationDeleteUserArgs = {
 export type MutationLoginArgs = {
   email: Scalars['String'];
   password: Scalars['String'];
-};
-
-
-export type MutationAssignProsumerArgs = {
-  prosumerId: Scalars['Int'];
-};
-
-
-export type MutationSetProfilePictureArgs = {
-  file: Scalars['Upload'];
 };
 
 
@@ -108,19 +110,9 @@ export type MutationSetDischargeRatioArgs = {
 };
 
 
-export type MutationBanProducerArgs = {
+export type MutationSetElectricityPriceArgs = {
   id: Scalars['ID'];
-  duration: Scalars['Int'];
-};
-
-
-export type MutationTurnProductionOnArgs = {
-  id: Scalars['ID'];
-};
-
-
-export type MutationTurnProductionOffArgs = {
-  id: Scalars['ID'];
+  price: Scalars['Float'];
 };
 
 
@@ -130,51 +122,62 @@ export type MutationSetProductionLevelArgs = {
 };
 
 
-export type MutationSetElectricityPriceArgs = {
-  id: Scalars['ID'];
-  price: Scalars['Float'];
-};
-
-
-export type MutationStartSimulationArgs = {
-  interval?: Maybe<Scalars['Int']>;
-  speed?: Maybe<Scalars['Float']>;
-};
-
-
-export type MutationAdvanceByArgs = {
-  interval: Scalars['Int'];
-  steps?: Maybe<Scalars['Int']>;
+export type MutationSetProfilePictureArgs = {
+  file: Scalars['Upload'];
 };
 
 
 export type MutationSetSimulationParametersArgs = {
-  interval?: Maybe<Scalars['Int']>;
-  speed?: Maybe<Scalars['Float']>;
+  interval?: InputMaybe<Scalars['Int']>;
+  speed?: InputMaybe<Scalars['Float']>;
 };
 
 
-export type FieldError = {
-  __typename?: 'FieldError';
-  field: Scalars['String'];
-  message: Scalars['String'];
+export type MutationStartSimulationArgs = {
+  interval?: InputMaybe<Scalars['Int']>;
+  speed?: InputMaybe<Scalars['Float']>;
 };
 
-export type User = {
-  __typename?: 'User';
-  _id?: Maybe<Scalars['ID']>;
+
+export type MutationTurnProductionOffArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type MutationTurnProductionOnArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type MutationUpdateUserArgs = {
+  userId: Scalars['String'];
+  userInput?: InputMaybe<UserInput>;
+};
+
+export type Powerplant = {
+  __typename?: 'Powerplant';
   name: Scalars['String'];
-  email: Scalars['String'];
-  password?: Maybe<Scalars['String']>;
-  type: Scalars['Int'];
-  prosumerData?: Maybe<ProsumerData>;
-  managerData?: Maybe<ManagerData>;
+  powerplantId: Scalars['String'];
 };
 
-export type UserResponse = {
-  __typename?: 'UserResponse';
-  errors?: Maybe<Array<Maybe<FieldError>>>;
-  user?: Maybe<User>;
+export type PowerplantInput = {
+  name: Scalars['String'];
+  powerplandId: Scalars['String'];
+};
+
+export type Prosumer = {
+  __typename?: 'Prosumer';
+  banDuration?: Maybe<Scalars['Int']>;
+  banned?: Maybe<Scalars['Boolean']>;
+  battery?: Maybe<Battery>;
+  blackout: Scalars['Boolean'];
+  chargeRatio: Scalars['Float'];
+  dischargeRatio: Scalars['Float'];
+  id: Scalars['ID'];
+  nextProductionTransition?: Maybe<Scalars['Float']>;
+  powerConsumption: Scalars['Float'];
+  powerProduction: Scalars['Float'];
+  productionStatus: Scalars['Int'];
 };
 
 export type ProsumerData = {
@@ -183,41 +186,45 @@ export type ProsumerData = {
   houseId?: Maybe<Scalars['Int']>;
 };
 
-export type ManagerData = {
-  __typename?: 'ManagerData';
-  powerplants?: Maybe<Array<Powerplant>>;
-};
-
-export type Powerplant = {
-  __typename?: 'Powerplant';
-  powerplantId: Scalars['String'];
-  name: Scalars['String'];
-};
-
-export type UserInput = {
-  name: Scalars['String'];
-  email: Scalars['String'];
-  password: Scalars['String'];
-  type: Scalars['String'];
-  prosumerData?: Maybe<ProsumerInput>;
-  managerData?: Maybe<PowerplantInput>;
-};
-
 export type ProsumerInput = {
-  banned?: Maybe<Scalars['Boolean']>;
+  banned?: InputMaybe<Scalars['Boolean']>;
   houseId: Scalars['Int'];
 };
 
-export type PowerplantInput = {
-  powerplandId: Scalars['String'];
-  name: Scalars['String'];
+export type Query = {
+  __typename?: 'Query';
+  currentPrice: Scalars['Float'];
+  marketDemand: Scalars['Float'];
+  me?: Maybe<User>;
+  modeledPrice?: Maybe<Scalars['Float']>;
+  online: Array<User>;
+  prosumerState?: Maybe<Prosumer>;
+  prosumerStates: Array<Prosumer>;
+  simulation?: Maybe<Simulation>;
+  user?: Maybe<User>;
+  users: Array<User>;
+  weather: Weather;
 };
 
-export type File = {
-  __typename?: 'File';
-  filename: Scalars['String'];
-  mimeype: Scalars['String'];
-  encoding: Scalars['String'];
+
+export type QueryProsumerStateArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type QueryUserArgs = {
+  id: Scalars['ID'];
+};
+
+export type Simulation = {
+  __typename?: 'Simulation';
+  duration: Scalars['Int'];
+  prosumers: Scalars['Int'];
+  running: Scalars['Boolean'];
+  speed: Scalars['Float'];
+  startTime: Scalars['String'];
+  time: Scalars['String'];
+  updateInterval: Scalars['Int'];
 };
 
 export type UploadResponse = {
@@ -226,41 +233,35 @@ export type UploadResponse = {
   file?: Maybe<File>;
 };
 
-export type Prosumer = {
-  __typename?: 'Prosumer';
-  id: Scalars['ID'];
-  powerConsumption: Scalars['Float'];
-  powerProduction: Scalars['Float'];
-  chargeRatio: Scalars['Float'];
-  dischargeRatio: Scalars['Float'];
-  banned?: Maybe<Scalars['Boolean']>;
-  banDuration?: Maybe<Scalars['Int']>;
-  blackout: Scalars['Boolean'];
-  productionStatus: Scalars['Int'];
-  nextProductionTransition?: Maybe<Scalars['Float']>;
-  battery?: Maybe<Battery>;
+export type User = {
+  __typename?: 'User';
+  _id?: Maybe<Scalars['ID']>;
+  email: Scalars['String'];
+  managerData?: Maybe<ManagerData>;
+  name: Scalars['String'];
+  password?: Maybe<Scalars['String']>;
+  prosumerData?: Maybe<ProsumerData>;
+  type: Scalars['Int'];
 };
 
-export type Battery = {
-  __typename?: 'Battery';
-  charge: Scalars['Float'];
-  capacity: Scalars['Float'];
+export type UserInput = {
+  email: Scalars['String'];
+  managerData?: InputMaybe<PowerplantInput>;
+  name: Scalars['String'];
+  password: Scalars['String'];
+  prosumerData?: InputMaybe<ProsumerInput>;
+  type: Scalars['String'];
+};
+
+export type UserResponse = {
+  __typename?: 'UserResponse';
+  errors?: Maybe<Array<Maybe<FieldError>>>;
+  user?: Maybe<User>;
 };
 
 export type Weather = {
   __typename?: 'Weather';
   windSpeed: Scalars['Float'];
-};
-
-export type Simulation = {
-  __typename?: 'Simulation';
-  time: Scalars['String'];
-  startTime: Scalars['String'];
-  duration: Scalars['Int'];
-  updateInterval: Scalars['Int'];
-  speed: Scalars['Float'];
-  running: Scalars['Boolean'];
-  prosumers: Scalars['Int'];
 };
 
 export type BanProducerMutationVariables = Exact<{
@@ -269,42 +270,21 @@ export type BanProducerMutationVariables = Exact<{
 }>;
 
 
-export type BanProducerMutation = (
-  { __typename?: 'Mutation' }
-  & { banProducer: (
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'banned'>
-  ) }
-);
+export type BanProducerMutation = { __typename?: 'Mutation', banProducer: { __typename?: 'Prosumer', banned?: boolean | null } };
 
 export type CreateUserMutationVariables = Exact<{
-  userInput?: Maybe<UserInput>;
+  userInput?: InputMaybe<UserInput>;
 }>;
 
 
-export type CreateUserMutation = (
-  { __typename?: 'Mutation' }
-  & { createUser: (
-    { __typename?: 'UserResponse' }
-    & { errors?: Maybe<Array<Maybe<(
-      { __typename?: 'FieldError' }
-      & Pick<FieldError, 'field' | 'message'>
-    )>>>, user?: Maybe<(
-      { __typename?: 'User' }
-      & Pick<User, '_id' | 'email'>
-    )> }
-  ) }
-);
+export type CreateUserMutation = { __typename?: 'Mutation', createUser: { __typename?: 'UserResponse', errors?: Array<{ __typename?: 'FieldError', field: string, message: string } | null> | null, user?: { __typename?: 'User', _id?: string | null, email: string } | null } };
 
 export type DeleteUserMutationVariables = Exact<{
   userId: Scalars['String'];
 }>;
 
 
-export type DeleteUserMutation = (
-  { __typename?: 'Mutation' }
-  & Pick<Mutation, 'deleteUser'>
-);
+export type DeleteUserMutation = { __typename?: 'Mutation', deleteUser?: boolean | null };
 
 export type LoginMutationVariables = Exact<{
   email: Scalars['String'];
@@ -312,45 +292,24 @@ export type LoginMutationVariables = Exact<{
 }>;
 
 
-export type LoginMutation = (
-  { __typename?: 'Mutation' }
-  & { login: (
-    { __typename?: 'UserResponse' }
-    & { errors?: Maybe<Array<Maybe<(
-      { __typename?: 'FieldError' }
-      & Pick<FieldError, 'field' | 'message'>
-    )>>>, user?: Maybe<(
-      { __typename?: 'User' }
-      & Pick<User, '_id' | 'email'>
-    )> }
-  ) }
-);
+export type LoginMutation = { __typename?: 'Mutation', login: { __typename?: 'UserResponse', errors?: Array<{ __typename?: 'FieldError', field: string, message: string } | null> | null, user?: { __typename?: 'User', _id?: string | null, email: string } | null } };
 
 export type LogoutMutationVariables = Exact<{ [key: string]: never; }>;
 
 
-export type LogoutMutation = (
-  { __typename?: 'Mutation' }
-  & Pick<Mutation, 'logout'>
-);
+export type LogoutMutation = { __typename?: 'Mutation', logout?: boolean | null };
 
 export type PurchaseMutationVariables = Exact<{
   prosumerId: Scalars['Int'];
 }>;
 
 
-export type PurchaseMutation = (
-  { __typename?: 'Mutation' }
-  & Pick<Mutation, 'assignProsumer'>
-);
+export type PurchaseMutation = { __typename?: 'Mutation', assignProsumer?: boolean | null };
 
 export type SellMutationVariables = Exact<{ [key: string]: never; }>;
 
 
-export type SellMutation = (
-  { __typename?: 'Mutation' }
-  & Pick<Mutation, 'unassignProsumer'>
-);
+export type SellMutation = { __typename?: 'Mutation', unassignProsumer?: boolean | null };
 
 export type SetChargeRatioMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -358,13 +317,7 @@ export type SetChargeRatioMutationVariables = Exact<{
 }>;
 
 
-export type SetChargeRatioMutation = (
-  { __typename?: 'Mutation' }
-  & { setChargeRatio: (
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'id' | 'chargeRatio'>
-  ) }
-);
+export type SetChargeRatioMutation = { __typename?: 'Mutation', setChargeRatio: { __typename?: 'Prosumer', id: string, chargeRatio: number } };
 
 export type SetDischargeRatioMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -372,222 +325,93 @@ export type SetDischargeRatioMutationVariables = Exact<{
 }>;
 
 
-export type SetDischargeRatioMutation = (
-  { __typename?: 'Mutation' }
-  & { setDischargeRatio: (
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'id' | 'chargeRatio'>
-  ) }
-);
+export type SetDischargeRatioMutation = { __typename?: 'Mutation', setDischargeRatio: { __typename?: 'Prosumer', id: string, chargeRatio: number } };
 
 export type SetElectricityPriceMutationVariables = Exact<{
   price: Scalars['Float'];
 }>;
 
 
-export type SetElectricityPriceMutation = (
-  { __typename?: 'Mutation' }
-  & { setElectricityPrice: (
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'powerProduction'>
-  ) }
-);
+export type SetElectricityPriceMutation = { __typename?: 'Mutation', setElectricityPrice: { __typename?: 'Prosumer', powerProduction: number } };
 
 export type SetProductionLevelMutationVariables = Exact<{
   percent: Scalars['Int'];
 }>;
 
 
-export type SetProductionLevelMutation = (
-  { __typename?: 'Mutation' }
-  & { setProductionLevel: (
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'id' | 'productionStatus' | 'nextProductionTransition'>
-  ) }
-);
+export type SetProductionLevelMutation = { __typename?: 'Mutation', setProductionLevel: { __typename?: 'Prosumer', id: string, productionStatus: number, nextProductionTransition?: number | null } };
 
 export type SetProfilePictureMutationVariables = Exact<{
   file: Scalars['Upload'];
 }>;
 
 
-export type SetProfilePictureMutation = (
-  { __typename?: 'Mutation' }
-  & { setProfilePicture: (
-    { __typename?: 'UploadResponse' }
-    & { errors?: Maybe<Array<Maybe<(
-      { __typename?: 'FieldError' }
-      & Pick<FieldError, 'field' | 'message'>
-    )>>>, file?: Maybe<(
-      { __typename?: 'File' }
-      & Pick<File, 'filename' | 'mimeype' | 'encoding'>
-    )> }
-  ) }
-);
+export type SetProfilePictureMutation = { __typename?: 'Mutation', setProfilePicture: { __typename?: 'UploadResponse', errors?: Array<{ __typename?: 'FieldError', field: string, message: string } | null> | null, file?: { __typename?: 'File', filename: string, mimeype: string, encoding: string } | null } };
 
 export type TurnProductionOffMutationVariables = Exact<{ [key: string]: never; }>;
 
 
-export type TurnProductionOffMutation = (
-  { __typename?: 'Mutation' }
-  & { turnProductionOff: (
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'powerProduction'>
-  ) }
-);
+export type TurnProductionOffMutation = { __typename?: 'Mutation', turnProductionOff: { __typename?: 'Prosumer', powerProduction: number } };
 
 export type TurnProductionOnMutationVariables = Exact<{ [key: string]: never; }>;
 
 
-export type TurnProductionOnMutation = (
-  { __typename?: 'Mutation' }
-  & { turnProductionOn: (
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'powerProduction'>
-  ) }
-);
+export type TurnProductionOnMutation = { __typename?: 'Mutation', turnProductionOn: { __typename?: 'Prosumer', powerProduction: number } };
 
 export type UpdateUserMutationVariables = Exact<{
   userId: Scalars['String'];
-  userInput?: Maybe<UserInput>;
+  userInput?: InputMaybe<UserInput>;
 }>;
 
 
-export type UpdateUserMutation = (
-  { __typename?: 'Mutation' }
-  & { updateUser: (
-    { __typename?: 'UserResponse' }
-    & { errors?: Maybe<Array<Maybe<(
-      { __typename?: 'FieldError' }
-      & Pick<FieldError, 'field' | 'message'>
-    )>>>, user?: Maybe<(
-      { __typename?: 'User' }
-      & Pick<User, '_id' | 'name' | 'email' | 'type'>
-    )> }
-  ) }
-);
+export type UpdateUserMutation = { __typename?: 'Mutation', updateUser: { __typename?: 'UserResponse', errors?: Array<{ __typename?: 'FieldError', field: string, message: string } | null> | null, user?: { __typename?: 'User', _id?: string | null, name: string, email: string, type: number } | null } };
 
 export type HasBlackoutQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type HasBlackoutQuery = (
-  { __typename?: 'Query' }
-  & { hasBlackout: Array<(
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'blackout'>
-  )> }
-);
+export type HasBlackoutQuery = { __typename?: 'Query', hasBlackout: Array<{ __typename?: 'Prosumer', blackout: boolean }> };
 
 export type ManagerDataQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ManagerDataQuery = (
-  { __typename?: 'Query' }
-  & { managerState?: Maybe<(
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'powerConsumption' | 'powerProduction' | 'chargeRatio' | 'banned' | 'productionStatus' | 'nextProductionTransition'>
-    & { battery?: Maybe<(
-      { __typename?: 'Battery' }
-      & Pick<Battery, 'charge' | 'capacity'>
-    )> }
-  )> }
-);
+export type ManagerDataQuery = { __typename?: 'Query', managerState?: { __typename?: 'Prosumer', powerConsumption: number, powerProduction: number, chargeRatio: number, banned?: boolean | null, productionStatus: number, nextProductionTransition?: number | null, battery?: { __typename?: 'Battery', charge: number, capacity: number } | null } | null };
 
 export type MarketDataQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MarketDataQuery = (
-  { __typename?: 'Query' }
-  & Pick<Query, 'marketDemand' | 'currentPrice' | 'modeledPrice'>
-  & { weather: (
-    { __typename?: 'Weather' }
-    & Pick<Weather, 'windSpeed'>
-  ) }
-);
+export type MarketDataQuery = { __typename?: 'Query', marketDemand: number, currentPrice: number, modeledPrice?: number | null, weather: { __typename?: 'Weather', windSpeed: number } };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = (
-  { __typename?: 'Query' }
-  & { me?: Maybe<(
-    { __typename?: 'User' }
-    & Pick<User, '_id' | 'name' | 'email' | 'type'>
-    & { prosumerData?: Maybe<(
-      { __typename?: 'ProsumerData' }
-      & Pick<ProsumerData, 'banned' | 'houseId'>
-    )> }
-  )> }
-);
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', _id?: string | null, name: string, email: string, type: number, prosumerData?: { __typename?: 'ProsumerData', banned: boolean, houseId?: number | null } | null } | null };
 
 export type OnlineQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type OnlineQuery = (
-  { __typename?: 'Query' }
-  & { online: Array<(
-    { __typename?: 'User' }
-    & Pick<User, '_id'>
-  )> }
-);
+export type OnlineQuery = { __typename?: 'Query', online: Array<{ __typename?: 'User', _id?: string | null }> };
 
 export type OwnedQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type OwnedQuery = (
-  { __typename?: 'Query' }
-  & { users: Array<(
-    { __typename?: 'User' }
-    & Pick<User, '_id' | 'name' | 'email' | 'type'>
-    & { prosumerData?: Maybe<(
-      { __typename?: 'ProsumerData' }
-      & Pick<ProsumerData, 'houseId' | 'banned'>
-    )> }
-  )> }
-);
+export type OwnedQuery = { __typename?: 'Query', users: Array<{ __typename?: 'User', _id?: string | null, name: string, email: string, type: number, prosumerData?: { __typename?: 'ProsumerData', houseId?: number | null, banned: boolean } | null }> };
 
 export type ProsumerDataQueryVariables = Exact<{
   id: Scalars['ID'];
 }>;
 
 
-export type ProsumerDataQuery = (
-  { __typename?: 'Query' }
-  & { prosumerState?: Maybe<(
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'powerConsumption' | 'powerProduction' | 'chargeRatio' | 'dischargeRatio' | 'banned' | 'banDuration' | 'blackout' | 'productionStatus' | 'nextProductionTransition'>
-    & { battery?: Maybe<(
-      { __typename?: 'Battery' }
-      & Pick<Battery, 'charge' | 'capacity'>
-    )> }
-  )> }
-);
+export type ProsumerDataQuery = { __typename?: 'Query', prosumerState?: { __typename?: 'Prosumer', powerConsumption: number, powerProduction: number, chargeRatio: number, dischargeRatio: number, banned?: boolean | null, banDuration?: number | null, blackout: boolean, productionStatus: number, nextProductionTransition?: number | null, battery?: { __typename?: 'Battery', charge: number, capacity: number } | null } | null };
 
 export type ProsumersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ProsumersQuery = (
-  { __typename?: 'Query' }
-  & { prosumerStates: Array<(
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'id'>
-  )> }
-);
+export type ProsumersQuery = { __typename?: 'Query', prosumerStates: Array<{ __typename?: 'Prosumer', id: string }> };
 
 export type ProsumersDataQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ProsumersDataQuery = (
-  { __typename?: 'Query' }
-  & { prosumerStates: Array<(
-    { __typename?: 'Prosumer' }
-    & Pick<Prosumer, 'powerConsumption' | 'powerProduction' | 'chargeRatio' | 'dischargeRatio' | 'banned' | 'blackout' | 'productionStatus' | 'nextProductionTransition'>
-    & { battery?: Maybe<(
-      { __typename?: 'Battery' }
-      & Pick<Battery, 'charge' | 'capacity'>
-    )> }
-  )> }
-);
+export type ProsumersDataQuery = { __typename?: 'Query', prosumerStates: Array<{ __typename?: 'Prosumer', powerConsumption: number, powerProduction: number, chargeRatio: number, dischargeRatio: number, banned?: boolean | null, blackout: boolean, productionStatus: number, nextProductionTransition?: number | null, battery?: { __typename?: 'Battery', charge: number, capacity: number } | null }> };
 
 
 export const BanProducerDocument = gql`
@@ -618,7 +442,8 @@ export type BanProducerMutationFn = Apollo.MutationFunction<BanProducerMutation,
  * });
  */
 export function useBanProducerMutation(baseOptions?: Apollo.MutationHookOptions<BanProducerMutation, BanProducerMutationVariables>) {
-        return Apollo.useMutation<BanProducerMutation, BanProducerMutationVariables>(BanProducerDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<BanProducerMutation, BanProducerMutationVariables>(BanProducerDocument, options);
       }
 export type BanProducerMutationHookResult = ReturnType<typeof useBanProducerMutation>;
 export type BanProducerMutationResult = Apollo.MutationResult<BanProducerMutation>;
@@ -657,7 +482,8 @@ export type CreateUserMutationFn = Apollo.MutationFunction<CreateUserMutation, C
  * });
  */
 export function useCreateUserMutation(baseOptions?: Apollo.MutationHookOptions<CreateUserMutation, CreateUserMutationVariables>) {
-        return Apollo.useMutation<CreateUserMutation, CreateUserMutationVariables>(CreateUserDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateUserMutation, CreateUserMutationVariables>(CreateUserDocument, options);
       }
 export type CreateUserMutationHookResult = ReturnType<typeof useCreateUserMutation>;
 export type CreateUserMutationResult = Apollo.MutationResult<CreateUserMutation>;
@@ -687,7 +513,8 @@ export type DeleteUserMutationFn = Apollo.MutationFunction<DeleteUserMutation, D
  * });
  */
 export function useDeleteUserMutation(baseOptions?: Apollo.MutationHookOptions<DeleteUserMutation, DeleteUserMutationVariables>) {
-        return Apollo.useMutation<DeleteUserMutation, DeleteUserMutationVariables>(DeleteUserDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteUserMutation, DeleteUserMutationVariables>(DeleteUserDocument, options);
       }
 export type DeleteUserMutationHookResult = ReturnType<typeof useDeleteUserMutation>;
 export type DeleteUserMutationResult = Apollo.MutationResult<DeleteUserMutation>;
@@ -727,7 +554,8 @@ export type LoginMutationFn = Apollo.MutationFunction<LoginMutation, LoginMutati
  * });
  */
 export function useLoginMutation(baseOptions?: Apollo.MutationHookOptions<LoginMutation, LoginMutationVariables>) {
-        return Apollo.useMutation<LoginMutation, LoginMutationVariables>(LoginDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<LoginMutation, LoginMutationVariables>(LoginDocument, options);
       }
 export type LoginMutationHookResult = ReturnType<typeof useLoginMutation>;
 export type LoginMutationResult = Apollo.MutationResult<LoginMutation>;
@@ -756,7 +584,8 @@ export type LogoutMutationFn = Apollo.MutationFunction<LogoutMutation, LogoutMut
  * });
  */
 export function useLogoutMutation(baseOptions?: Apollo.MutationHookOptions<LogoutMutation, LogoutMutationVariables>) {
-        return Apollo.useMutation<LogoutMutation, LogoutMutationVariables>(LogoutDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<LogoutMutation, LogoutMutationVariables>(LogoutDocument, options);
       }
 export type LogoutMutationHookResult = ReturnType<typeof useLogoutMutation>;
 export type LogoutMutationResult = Apollo.MutationResult<LogoutMutation>;
@@ -786,7 +615,8 @@ export type PurchaseMutationFn = Apollo.MutationFunction<PurchaseMutation, Purch
  * });
  */
 export function usePurchaseMutation(baseOptions?: Apollo.MutationHookOptions<PurchaseMutation, PurchaseMutationVariables>) {
-        return Apollo.useMutation<PurchaseMutation, PurchaseMutationVariables>(PurchaseDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<PurchaseMutation, PurchaseMutationVariables>(PurchaseDocument, options);
       }
 export type PurchaseMutationHookResult = ReturnType<typeof usePurchaseMutation>;
 export type PurchaseMutationResult = Apollo.MutationResult<PurchaseMutation>;
@@ -815,7 +645,8 @@ export type SellMutationFn = Apollo.MutationFunction<SellMutation, SellMutationV
  * });
  */
 export function useSellMutation(baseOptions?: Apollo.MutationHookOptions<SellMutation, SellMutationVariables>) {
-        return Apollo.useMutation<SellMutation, SellMutationVariables>(SellDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SellMutation, SellMutationVariables>(SellDocument, options);
       }
 export type SellMutationHookResult = ReturnType<typeof useSellMutation>;
 export type SellMutationResult = Apollo.MutationResult<SellMutation>;
@@ -849,7 +680,8 @@ export type SetChargeRatioMutationFn = Apollo.MutationFunction<SetChargeRatioMut
  * });
  */
 export function useSetChargeRatioMutation(baseOptions?: Apollo.MutationHookOptions<SetChargeRatioMutation, SetChargeRatioMutationVariables>) {
-        return Apollo.useMutation<SetChargeRatioMutation, SetChargeRatioMutationVariables>(SetChargeRatioDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SetChargeRatioMutation, SetChargeRatioMutationVariables>(SetChargeRatioDocument, options);
       }
 export type SetChargeRatioMutationHookResult = ReturnType<typeof useSetChargeRatioMutation>;
 export type SetChargeRatioMutationResult = Apollo.MutationResult<SetChargeRatioMutation>;
@@ -883,7 +715,8 @@ export type SetDischargeRatioMutationFn = Apollo.MutationFunction<SetDischargeRa
  * });
  */
 export function useSetDischargeRatioMutation(baseOptions?: Apollo.MutationHookOptions<SetDischargeRatioMutation, SetDischargeRatioMutationVariables>) {
-        return Apollo.useMutation<SetDischargeRatioMutation, SetDischargeRatioMutationVariables>(SetDischargeRatioDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SetDischargeRatioMutation, SetDischargeRatioMutationVariables>(SetDischargeRatioDocument, options);
       }
 export type SetDischargeRatioMutationHookResult = ReturnType<typeof useSetDischargeRatioMutation>;
 export type SetDischargeRatioMutationResult = Apollo.MutationResult<SetDischargeRatioMutation>;
@@ -915,7 +748,8 @@ export type SetElectricityPriceMutationFn = Apollo.MutationFunction<SetElectrici
  * });
  */
 export function useSetElectricityPriceMutation(baseOptions?: Apollo.MutationHookOptions<SetElectricityPriceMutation, SetElectricityPriceMutationVariables>) {
-        return Apollo.useMutation<SetElectricityPriceMutation, SetElectricityPriceMutationVariables>(SetElectricityPriceDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SetElectricityPriceMutation, SetElectricityPriceMutationVariables>(SetElectricityPriceDocument, options);
       }
 export type SetElectricityPriceMutationHookResult = ReturnType<typeof useSetElectricityPriceMutation>;
 export type SetElectricityPriceMutationResult = Apollo.MutationResult<SetElectricityPriceMutation>;
@@ -949,7 +783,8 @@ export type SetProductionLevelMutationFn = Apollo.MutationFunction<SetProduction
  * });
  */
 export function useSetProductionLevelMutation(baseOptions?: Apollo.MutationHookOptions<SetProductionLevelMutation, SetProductionLevelMutationVariables>) {
-        return Apollo.useMutation<SetProductionLevelMutation, SetProductionLevelMutationVariables>(SetProductionLevelDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SetProductionLevelMutation, SetProductionLevelMutationVariables>(SetProductionLevelDocument, options);
       }
 export type SetProductionLevelMutationHookResult = ReturnType<typeof useSetProductionLevelMutation>;
 export type SetProductionLevelMutationResult = Apollo.MutationResult<SetProductionLevelMutation>;
@@ -989,7 +824,8 @@ export type SetProfilePictureMutationFn = Apollo.MutationFunction<SetProfilePict
  * });
  */
 export function useSetProfilePictureMutation(baseOptions?: Apollo.MutationHookOptions<SetProfilePictureMutation, SetProfilePictureMutationVariables>) {
-        return Apollo.useMutation<SetProfilePictureMutation, SetProfilePictureMutationVariables>(SetProfilePictureDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SetProfilePictureMutation, SetProfilePictureMutationVariables>(SetProfilePictureDocument, options);
       }
 export type SetProfilePictureMutationHookResult = ReturnType<typeof useSetProfilePictureMutation>;
 export type SetProfilePictureMutationResult = Apollo.MutationResult<SetProfilePictureMutation>;
@@ -1020,7 +856,8 @@ export type TurnProductionOffMutationFn = Apollo.MutationFunction<TurnProduction
  * });
  */
 export function useTurnProductionOffMutation(baseOptions?: Apollo.MutationHookOptions<TurnProductionOffMutation, TurnProductionOffMutationVariables>) {
-        return Apollo.useMutation<TurnProductionOffMutation, TurnProductionOffMutationVariables>(TurnProductionOffDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<TurnProductionOffMutation, TurnProductionOffMutationVariables>(TurnProductionOffDocument, options);
       }
 export type TurnProductionOffMutationHookResult = ReturnType<typeof useTurnProductionOffMutation>;
 export type TurnProductionOffMutationResult = Apollo.MutationResult<TurnProductionOffMutation>;
@@ -1051,7 +888,8 @@ export type TurnProductionOnMutationFn = Apollo.MutationFunction<TurnProductionO
  * });
  */
 export function useTurnProductionOnMutation(baseOptions?: Apollo.MutationHookOptions<TurnProductionOnMutation, TurnProductionOnMutationVariables>) {
-        return Apollo.useMutation<TurnProductionOnMutation, TurnProductionOnMutationVariables>(TurnProductionOnDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<TurnProductionOnMutation, TurnProductionOnMutationVariables>(TurnProductionOnDocument, options);
       }
 export type TurnProductionOnMutationHookResult = ReturnType<typeof useTurnProductionOnMutation>;
 export type TurnProductionOnMutationResult = Apollo.MutationResult<TurnProductionOnMutation>;
@@ -1093,7 +931,8 @@ export type UpdateUserMutationFn = Apollo.MutationFunction<UpdateUserMutation, U
  * });
  */
 export function useUpdateUserMutation(baseOptions?: Apollo.MutationHookOptions<UpdateUserMutation, UpdateUserMutationVariables>) {
-        return Apollo.useMutation<UpdateUserMutation, UpdateUserMutationVariables>(UpdateUserDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateUserMutation, UpdateUserMutationVariables>(UpdateUserDocument, options);
       }
 export type UpdateUserMutationHookResult = ReturnType<typeof useUpdateUserMutation>;
 export type UpdateUserMutationResult = Apollo.MutationResult<UpdateUserMutation>;
@@ -1122,10 +961,12 @@ export const HasBlackoutDocument = gql`
  * });
  */
 export function useHasBlackoutQuery(baseOptions?: Apollo.QueryHookOptions<HasBlackoutQuery, HasBlackoutQueryVariables>) {
-        return Apollo.useQuery<HasBlackoutQuery, HasBlackoutQueryVariables>(HasBlackoutDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<HasBlackoutQuery, HasBlackoutQueryVariables>(HasBlackoutDocument, options);
       }
 export function useHasBlackoutLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<HasBlackoutQuery, HasBlackoutQueryVariables>) {
-          return Apollo.useLazyQuery<HasBlackoutQuery, HasBlackoutQueryVariables>(HasBlackoutDocument, baseOptions);
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<HasBlackoutQuery, HasBlackoutQueryVariables>(HasBlackoutDocument, options);
         }
 export type HasBlackoutQueryHookResult = ReturnType<typeof useHasBlackoutQuery>;
 export type HasBlackoutLazyQueryHookResult = ReturnType<typeof useHasBlackoutLazyQuery>;
@@ -1163,10 +1004,12 @@ export const ManagerDataDocument = gql`
  * });
  */
 export function useManagerDataQuery(baseOptions?: Apollo.QueryHookOptions<ManagerDataQuery, ManagerDataQueryVariables>) {
-        return Apollo.useQuery<ManagerDataQuery, ManagerDataQueryVariables>(ManagerDataDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ManagerDataQuery, ManagerDataQueryVariables>(ManagerDataDocument, options);
       }
 export function useManagerDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ManagerDataQuery, ManagerDataQueryVariables>) {
-          return Apollo.useLazyQuery<ManagerDataQuery, ManagerDataQueryVariables>(ManagerDataDocument, baseOptions);
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ManagerDataQuery, ManagerDataQueryVariables>(ManagerDataDocument, options);
         }
 export type ManagerDataQueryHookResult = ReturnType<typeof useManagerDataQuery>;
 export type ManagerDataLazyQueryHookResult = ReturnType<typeof useManagerDataLazyQuery>;
@@ -1198,10 +1041,12 @@ export const MarketDataDocument = gql`
  * });
  */
 export function useMarketDataQuery(baseOptions?: Apollo.QueryHookOptions<MarketDataQuery, MarketDataQueryVariables>) {
-        return Apollo.useQuery<MarketDataQuery, MarketDataQueryVariables>(MarketDataDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<MarketDataQuery, MarketDataQueryVariables>(MarketDataDocument, options);
       }
 export function useMarketDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MarketDataQuery, MarketDataQueryVariables>) {
-          return Apollo.useLazyQuery<MarketDataQuery, MarketDataQueryVariables>(MarketDataDocument, baseOptions);
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<MarketDataQuery, MarketDataQueryVariables>(MarketDataDocument, options);
         }
 export type MarketDataQueryHookResult = ReturnType<typeof useMarketDataQuery>;
 export type MarketDataLazyQueryHookResult = ReturnType<typeof useMarketDataLazyQuery>;
@@ -1237,10 +1082,12 @@ export const MeDocument = gql`
  * });
  */
 export function useMeQuery(baseOptions?: Apollo.QueryHookOptions<MeQuery, MeQueryVariables>) {
-        return Apollo.useQuery<MeQuery, MeQueryVariables>(MeDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<MeQuery, MeQueryVariables>(MeDocument, options);
       }
 export function useMeLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MeQuery, MeQueryVariables>) {
-          return Apollo.useLazyQuery<MeQuery, MeQueryVariables>(MeDocument, baseOptions);
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<MeQuery, MeQueryVariables>(MeDocument, options);
         }
 export type MeQueryHookResult = ReturnType<typeof useMeQuery>;
 export type MeLazyQueryHookResult = ReturnType<typeof useMeLazyQuery>;
@@ -1269,10 +1116,12 @@ export const OnlineDocument = gql`
  * });
  */
 export function useOnlineQuery(baseOptions?: Apollo.QueryHookOptions<OnlineQuery, OnlineQueryVariables>) {
-        return Apollo.useQuery<OnlineQuery, OnlineQueryVariables>(OnlineDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<OnlineQuery, OnlineQueryVariables>(OnlineDocument, options);
       }
 export function useOnlineLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OnlineQuery, OnlineQueryVariables>) {
-          return Apollo.useLazyQuery<OnlineQuery, OnlineQueryVariables>(OnlineDocument, baseOptions);
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<OnlineQuery, OnlineQueryVariables>(OnlineDocument, options);
         }
 export type OnlineQueryHookResult = ReturnType<typeof useOnlineQuery>;
 export type OnlineLazyQueryHookResult = ReturnType<typeof useOnlineLazyQuery>;
@@ -1308,10 +1157,12 @@ export const OwnedDocument = gql`
  * });
  */
 export function useOwnedQuery(baseOptions?: Apollo.QueryHookOptions<OwnedQuery, OwnedQueryVariables>) {
-        return Apollo.useQuery<OwnedQuery, OwnedQueryVariables>(OwnedDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<OwnedQuery, OwnedQueryVariables>(OwnedDocument, options);
       }
 export function useOwnedLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OwnedQuery, OwnedQueryVariables>) {
-          return Apollo.useLazyQuery<OwnedQuery, OwnedQueryVariables>(OwnedDocument, baseOptions);
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<OwnedQuery, OwnedQueryVariables>(OwnedDocument, options);
         }
 export type OwnedQueryHookResult = ReturnType<typeof useOwnedQuery>;
 export type OwnedLazyQueryHookResult = ReturnType<typeof useOwnedLazyQuery>;
@@ -1353,10 +1204,12 @@ export const ProsumerDataDocument = gql`
  * });
  */
 export function useProsumerDataQuery(baseOptions: Apollo.QueryHookOptions<ProsumerDataQuery, ProsumerDataQueryVariables>) {
-        return Apollo.useQuery<ProsumerDataQuery, ProsumerDataQueryVariables>(ProsumerDataDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ProsumerDataQuery, ProsumerDataQueryVariables>(ProsumerDataDocument, options);
       }
 export function useProsumerDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProsumerDataQuery, ProsumerDataQueryVariables>) {
-          return Apollo.useLazyQuery<ProsumerDataQuery, ProsumerDataQueryVariables>(ProsumerDataDocument, baseOptions);
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ProsumerDataQuery, ProsumerDataQueryVariables>(ProsumerDataDocument, options);
         }
 export type ProsumerDataQueryHookResult = ReturnType<typeof useProsumerDataQuery>;
 export type ProsumerDataLazyQueryHookResult = ReturnType<typeof useProsumerDataLazyQuery>;
@@ -1385,10 +1238,12 @@ export const ProsumersDocument = gql`
  * });
  */
 export function useProsumersQuery(baseOptions?: Apollo.QueryHookOptions<ProsumersQuery, ProsumersQueryVariables>) {
-        return Apollo.useQuery<ProsumersQuery, ProsumersQueryVariables>(ProsumersDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ProsumersQuery, ProsumersQueryVariables>(ProsumersDocument, options);
       }
 export function useProsumersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProsumersQuery, ProsumersQueryVariables>) {
-          return Apollo.useLazyQuery<ProsumersQuery, ProsumersQueryVariables>(ProsumersDocument, baseOptions);
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ProsumersQuery, ProsumersQueryVariables>(ProsumersDocument, options);
         }
 export type ProsumersQueryHookResult = ReturnType<typeof useProsumersQuery>;
 export type ProsumersLazyQueryHookResult = ReturnType<typeof useProsumersLazyQuery>;
@@ -1428,10 +1283,12 @@ export const ProsumersDataDocument = gql`
  * });
  */
 export function useProsumersDataQuery(baseOptions?: Apollo.QueryHookOptions<ProsumersDataQuery, ProsumersDataQueryVariables>) {
-        return Apollo.useQuery<ProsumersDataQuery, ProsumersDataQueryVariables>(ProsumersDataDocument, baseOptions);
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ProsumersDataQuery, ProsumersDataQueryVariables>(ProsumersDataDocument, options);
       }
 export function useProsumersDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProsumersDataQuery, ProsumersDataQueryVariables>) {
-          return Apollo.useLazyQuery<ProsumersDataQuery, ProsumersDataQueryVariables>(ProsumersDataDocument, baseOptions);
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ProsumersDataQuery, ProsumersDataQueryVariables>(ProsumersDataDocument, options);
         }
 export type ProsumersDataQueryHookResult = ReturnType<typeof useProsumersDataQuery>;
 export type ProsumersDataLazyQueryHookResult = ReturnType<typeof useProsumersDataLazyQuery>;

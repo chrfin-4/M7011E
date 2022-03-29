@@ -3,7 +3,6 @@ import { useApolloClient } from '@apollo/client';
 import { useMeQuery, useCreateUserMutation, MeDocument } from "../src/generated/graphql.ts";
 import { toErrorMap } from "../src/utils/toErrorMap";
 import { useRouter } from "next/router";
-import { withApollo } from "../src/utils/withApollo";
 import { isServer } from "../src/utils/isServer";
 
 import { Formik, Form, Field } from "formik";
@@ -138,4 +137,4 @@ const Register = ({}) => {
   );
 };
 
-export default withApollo({ ssr: true })(Register);
+export default Register;

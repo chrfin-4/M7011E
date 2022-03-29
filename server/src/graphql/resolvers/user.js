@@ -5,8 +5,9 @@ const { validateRegister } = require("../../util/validateRegister");
 const { validateUpdate } = require("../../util/validateUpdate");
 const bcrypt = require('bcryptjs');
 
-const redis = createClient({url: process.env.REDIS_URL});
-const keysAsync = promisify(redis.keys).bind(redis);
+const { getKeysByPattern } = require('../../redis');
+const { finished } = require("stream/promises");
+// const keysAsync = promisify(redis.keys).bind(redis);
 
 function assertIsSignedIn(context) {
   if (!context.req.session.userId) {
@@ -27,8 +28,8 @@ module.exports = {
       assertIsAuth(context);
 
       let ids;
-      await keysAsync('active:*').then((keys) => {
-        ids = keys.map(k => k.split(':')[1]);
+      await getKeysByPattern('active:*').then((keys) => {
+        ids = keys.map(k => k.split(':')[2]);
       });
 
       const res = ids.map(id => {
@@ -209,10 +210,9 @@ module.exports = {
       return true;
     },
     setProfilePicture: async(_, { file }, context) => {
-      if (!context.req.session.userId) {
-        console.log("Not signed in");
-        return null;
-      }
+      // assertIsSignedIn(context);
+
+      console.log(file);
 
       const { createReadStream, filename, mimetype, encoding } = await file;
       
@@ -224,6 +224,7 @@ module.exports = {
       // local-file-output.txt in the current working directory on EACH upload.
       const out = require('fs').createWriteStream('local-file-output.jpg');
       stream.pipe(out);
+      await finished(out);
 
       return { filename, mimetype, encoding };
     }

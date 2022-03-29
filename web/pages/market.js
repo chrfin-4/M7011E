@@ -1,5 +1,4 @@
 import React from 'react'
-import { withApollo } from "../src/utils/withApollo";
 import { isServer } from '../src/utils/isServer';
 import { useRouter } from 'next/router';
 
@@ -14,7 +13,6 @@ import {
 import clsx from 'clsx';
 import { 
   Box,
-  Typography,
   Button,
   Alert,
   Grid,
@@ -29,9 +27,7 @@ import {
   TableFooter,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { LoadingButton} from '@material-ui/lab';
 import { useApolloClient } from '@apollo/client';
-import { withAuthentication } from '../src/utils/withAuthentication';
 
 const useStyles = makeStyles((theme) => ({
   tableCell: {
@@ -233,4 +229,4 @@ const Market = ({}) => {
   );
 };
 
-export default withApollo({ ssr: true })(Market);
+export default Market;

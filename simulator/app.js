@@ -8,6 +8,7 @@ const model = require('./model.js');
 const { join } = require('path');
 
 const main = async () => {
+  console.log("Starting Exerge simulator.");
   const app = express();
 
   const port = process.env.SIM_PORT;
@@ -42,8 +43,11 @@ const main = async () => {
   });
 };
 
-main().catch((err) => {
-  console.log(err);
-});
-
+main()
+  .then(() => {
+    console.log("Finished starting Exerge simulator.");
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 

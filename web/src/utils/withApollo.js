@@ -16,12 +16,12 @@ const createClient = (ctx) => {
     link: createUploadLink({
       uri: process.env.NEXT_PUBLIC_API_URL,
       credentials: "include",
-      headers: {
-        cookie:
-          (typeof window === "undefined"
-            ? ctx?.req?.headers.cookie
-            : undefined) || "",
-      },
+      // headers: {
+      //   cookie:
+      //     (typeof window === "undefined"
+      //       ? ctx?.req?.headers.cookie
+      //       : undefined) || "",
+      // },
     }),
   });
 };

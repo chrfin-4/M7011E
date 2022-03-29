@@ -4,23 +4,26 @@
   "private": true,
   "dependencies": {
     "@apollo/client": "^3.3.7",
-    "@emotion/react": "^11.1.4",
-    "@emotion/styled": "^11.0.0",
+    "@emotion/react": "^11.8.2",
+    "@emotion/styled": "^11.8.1",
     "@material-ui/core": "^5.0.0-alpha.23",
     "@material-ui/icons": "^5.0.0-alpha.23",
     "@material-ui/lab": "^5.0.0-alpha.23",
+    "@mui/icons-material": "^5.5.1",
+    "@mui/material": "^5.5.2",
+    "@types/apollo-upload-client": "^17.0.0",
     "apollo-upload-client": "^17.0.0",
-    "clsx": "latest",
-    "formik": "^2.2.6",
-    "formik-material-ui": "^3.0.1",
-    "graphql": "^15.4.0",
+    "clsx": "^1.1.1",
+    "formik": "^2.2.9",
+    "formik-material-ui": "^4.0.0-alpha.2",
+    "graphql": "^16.3.0",
     "graphql-combine-query": "^1.2.3",
-    "next": "latest",
-    "next-apollo": "^5.0.4",
-    "prop-types": "latest",
+    "next": "12",
+    "next-apollo": "^5.0.8",
+    "prop-types": "^15.8.1",
     "react": "latest",
     "react-dom": "latest",
-    "socket.io-client": "^3.1.0"
+    "socket.io-client": "^4.4.1"
   },
   "scripts": {
     "setup": "cp example.env.local .env.local",
@@ -30,10 +33,10 @@
     "gen": "SCHEMA='http://localhost:8080/graphql' graphql-codegen --config codegen.yml"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^1.20.0",
-    "@graphql-codegen/typescript": "^1.20.0",
-    "@graphql-codegen/typescript-operations": "^1.17.13",
-    "@graphql-codegen/typescript-react-apollo": "^2.2.1",
+    "@graphql-codegen/cli": "^2.6.2",
+    "@graphql-codegen/typescript": "^2.4.8",
+    "@graphql-codegen/typescript-operations": "^2.3.5",
+    "@graphql-codegen/typescript-react-apollo": "^3.2.11",
     "@svgr/webpack": "^5.5.0"
   }
 }

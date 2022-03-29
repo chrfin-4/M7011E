@@ -1,5 +1,5 @@
 {
-  "name": "m7011e",
+  "name": "server",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -19,11 +19,12 @@
   "homepage": "https://github.com/chrfin-4/M7011E#readme",
   "dependencies": {
     "@graphql-tools/graphql-file-loader": "^7.3.7",
+    "@graphql-tools/links": "^8.2.7",
     "@graphql-tools/load": "^7.5.5",
     "@graphql-tools/schema": "^8.3.5",
     "@graphql-tools/stitch": "^8.6.2",
     "@graphql-tools/wrap": "^8.4.9",
-    "apollo-server": "^3.6.6",
+    "@types/graphql-upload": "^8.0.11",
     "apollo-server-core": "^3.6.6",
     "apollo-server-express": "^3.6.6",
     "bcryptjs": "^2.4.3",
@@ -35,10 +36,10 @@
     "express-session": "^1.17.2",
     "fetch-retry": "^5.0.2",
     "graphql": "^16.3.0",
-    "graphql-upload": "^13.0.0",
+    "graphql-upload": "^10.0.0",
     "ioredis": "^5.0.1",
     "jsonwebtoken": "^8.5.1",
-    "mongoose": "^6.2.8",
+    "mongoose": "^6.2.9",
     "redis": "^4.0.4",
     "socket.io": "^4.4.1",
     "stream": "^0.0.2"

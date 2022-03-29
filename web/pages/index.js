@@ -1,7 +1,5 @@
 import { Typography } from '@material-ui/core';
 import React from 'react';
-import { Layout } from '../components/Layout';
-import { withApollo } from '../src/utils/withApollo';
 import { useMeQuery } from "../src/generated/graphql.ts";
 
 const Index = (p) => {
@@ -44,4 +42,4 @@ const Index = (p) => {
   );
 }
 
-export default withApollo({ ssr: true })(Index);
+export default Index;

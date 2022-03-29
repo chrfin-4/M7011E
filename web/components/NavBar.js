@@ -40,6 +40,7 @@ import {
   ShowChart,
   Build
 } from '@material-ui/icons';
+import { UploadFile } from './UploadFile';
 
 const drawerWidth = 240;
 
@@ -111,17 +112,6 @@ export const NavBar = ({ window }) => {
   };
 
   if (loading) return null;
-
-  const onImageChange = ({ target: { validity, files: [file] }}) => {
-    if (validity.valid) {
-      console.log(file);
-      setProfilePicture({
-        variables: {
-          file: file
-        }
-      });
-    }
-  }
 
   const drawer = (
     <div
@@ -225,7 +215,7 @@ export const NavBar = ({ window }) => {
               (
                 <>
                   <Box className={clsx(classes.filler)} />
-                  <input accept="image/*" className={classes.input} id="icon-button-file" type="file" onChange={onImageChange} />
+                  <UploadFile/>
                   <label htmlFor="icon-button-file">
                     <IconButton aria-label="Avatar" className={classes.avatarButton} component="span" >
                       <Avatar className={classes.avatar} alt={data.me.name} />

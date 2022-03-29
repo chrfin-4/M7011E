@@ -1,5 +1,7 @@
 overwrite: true
-schema: ${SCHEMA}
+schema: 
+  - ${SCHEMA}
+  - scalar Upload
 documents: "src/graphql/**/*.graphql"
 generates:
   src/generated/graphql.ts:

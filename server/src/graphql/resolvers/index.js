@@ -5,7 +5,6 @@ const authResolver = require('./auth');
 
 const rootResolver = {
   Upload: GraphQLUpload,
-
   Query: {
     ...userResolver.Query,
     ...authResolver.Query,

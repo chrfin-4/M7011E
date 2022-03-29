@@ -1,14 +1,11 @@
 import React from 'react'
 import PropTypes from 'prop-types';
-import { withApollo } from "../src/utils/withApollo";
-import { useApolloClient } from '@apollo/client';
 import { isServer } from '../src/utils/isServer';
 import { useRouter } from 'next/router';
 import { powConv } from '../src/utils/powConv';
 
 import { 
   useMeQuery, 
-  useOwnedQuery,
   useProsumerDataQuery,
   useMarketDataQuery,
   useSetChargeRatioMutation,
@@ -18,15 +15,8 @@ import {
 import clsx from 'clsx';
 import { 
   Box,
-  Radio,
-  FormControlLabel,
   Typography,
-  Button,
-  Alert,
   Grid,
-  Card,
-  CardContent,
-  CardActions,
   Paper,
   TableBody,
   TableContainer,
@@ -43,7 +33,6 @@ import { TextField } from 'formik-material-ui';
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
 import { Field, Form, Formik } from 'formik';
-import { withAuthentication } from '../src/utils/withAuthentication';
 
 const useStyles = makeStyles((theme) => ({
   manage: {
@@ -411,4 +400,4 @@ const Stats = ({}) => {
   )
 };
 
-export default withApollo({ ssr: true })(Stats);
+export default Stats;

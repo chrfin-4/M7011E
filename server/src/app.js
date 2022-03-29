@@ -5,40 +5,77 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const originalFetch = require('cross-fetch');
-const fetch = require('fetch-retry')(originalFetch)
+const fetch = require('fetch-retry')(originalFetch);
 
 // GraphQL
 const { ApolloServer } = require('apollo-server-express');
-const { addResolversToSchema, } = require('@graphql-tools/schema');
-const { loadSchemaSync } = require('@graphql-tools/load')
-const { introspectSchema } = require('@graphql-tools/wrap')
-const { stitchSchemas } = require('@graphql-tools/stitch')
-const { GraphQLFileLoader } = require('@graphql-tools/graphql-file-loader')
-const { graphqlUploadExpress } = require('graphql-upload');
-const { print } = require('graphql');
-
-// Os
-const { join } = require('path');
+const { introspectSchema } = require('@graphql-tools/wrap');
+const { stitchSchemas } = require('@graphql-tools/stitch');
+const { GraphQLUpload, graphqlUploadExpress } = require('graphql-upload');
+const { GraphQLUpload: GatewayGraphQLUpload } = require('@graphql-tools/links');
 
 // Db and store
 const mongoose = require('mongoose');
-const { createClient } = require('redis');
-const connectRedis = require('connect-redis');
+const RedisStore = require('connect-redis')(session);
 
 // Local includes
-const graphQlResolvers = require('./graphql/resolvers/index');
-const { __prod__, COOKIE_NAME } = require('./constants');
+const makeRemoteExecutor = require('./graphql/makeRemoteExecutor');
+const localSchema = require('./graphql/localSchema');
+const { __prod__, COOKIE_NAME, PROD_DOMAIN_NAME } = require('./constants');
+const { redis, batchDeletionKeysByPattern } = require('./redis');
 
+
+const makeGatewaySchema = async () => {
+  // Make remote executors:
+  // these are simple functions that query a remote GraphQL API for JSON.
+  const simulationExecutor = makeRemoteExecutor(process.env.SIM_ENDPOINT)
+
+  const gatewaySchema = stitchSchemas({
+    subschemas: [
+      {
+        // 1. Introspect a remote schema. Simple, but there are caveats:
+        // - Remote server must enable introspection.
+        // - Custom directives are not included in introspection.
+        schema: await introspectSchema(simulationExecutor),
+        executor: simulationExecutor
+      },
+      {
+        // 4. Incorporate a locally-executable subschema.
+        // No need for a remote executor!
+        // Note that that the gateway still proxies through
+        // to this same underlying executable schema instance.
+        schema: localSchema,
+      },
+    ],
+    resolvers: {
+      Upload: GatewayGraphQLUpload,
+    }
+  });
+
+  return gatewaySchema;
+}
 
 const main = async () => {
   console.log("Starting Exerge server.");
-  const app = express();
 
-  const RedisStore = connectRedis(session);
-  const redis = createClient({
-    url: process.env.REDIS_URL,
+  // GraphQL
+  const gatewaySchema = await makeGatewaySchema();
+  const apolloServer = new ApolloServer({
+    schema: gatewaySchema,
+    context: ({ req, res}) => ({
+      req,
+      res,
+      redis
+    }),
   });
+  await apolloServer.start();
+
+
+  // Express
+  const app = express();
   app.set("trust proxy", 1);
+
+  // Express middlewares
   app.use(
     cors({
       origin: process.env.CORS_ORIGIN,
@@ -57,7 +94,7 @@ const main = async () => {
         httpOnly: true,
         sameSite: "lax", // csrf
         secure: __prod__, // cookie only works in https
-        domain: __prod__ ? "exerge.akerstrom.dev" : undefined,
+        domain: __prod__ ? PROD_DOMAIN_NAME : undefined,
       },
       saveUninitialized: false,
       secret: process.env.CRYPT_KEY,
@@ -65,83 +102,10 @@ const main = async () => {
     })
   );
 
-  // Start http server
-  server = http.createServer(app);
-
-  /*
-  app.use(bodyParser.json());
-  app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST,GET,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
-    }
-    next();
-  });
-  */
-  
-  // Load schema from the file
-  const graphQlSchema = loadSchemaSync(join(__dirname, './graphql/schema.graphql'), {
-    loaders: [
-      new GraphQLFileLoader(),
-    ]
-  });
-
-  let localSchema = addResolversToSchema({
-    schema: graphQlSchema,
-    resolvers: graphQlResolvers
-  });
-
-  async function simExecutor({ document, variables, context }) {
-    if (context) {
-      if (!context?.res.req.session.userId) {
-        throw new Error('Unauthorized');
-      }
-    }
-    const query = print(document);
-    const fetchResult = await fetch(process.env.SIM_ENDPOINT, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ query, variables }),
-      retryDelay: 1000,
-      retries: 5
-    });
-    return fetchResult.json();
-  }
-
-  const simSubschema = {
-    schema: await introspectSchema(simExecutor),
-    executor: simExecutor,
-    // subscriber: remoteSubscriber
-  };
-
-  const localSubschema = { schema: localSchema };
-
-  const gatewaySchema = stitchSchemas({
-    subschemas: [
-      localSubschema,
-      simSubschema,
-    ]
-  });
-
-  const apolloServer = new ApolloServer({
-    schema: gatewaySchema,
-    uploads: false,
-    context: ({ req, res}) => ({
-      req,
-      res,
-      redis
-    }),
-  });
-
-  await apolloServer.start();
-
+  // Express Apollo middleware
   app.use(graphqlUploadExpress({
     maxFileSize: 10000000,
-    maxFiles: 1,
+    maxFiles: 20,
   }));
 
   apolloServer.applyMiddleware({
@@ -149,8 +113,14 @@ const main = async () => {
     cors: false
   });
 
+  // await new Promise(r => app.listen({ port: parseInt(process.env.SRV_PORT) }, r));
+  // console.log(`🚀 Server ready at http://localhost:4000${apolloServer.graphqlPath}`);  
+
+  // Start http server
+  const server = http.createServer(app);
+  
   // Socket io
-  io = socketIo(server, {
+  const io = socketIo(server, {
     cors: {
       origin: process.env.CORS_ORIGIN,
       credentials: true,
@@ -159,16 +129,20 @@ const main = async () => {
 
   io.sockets.on('connection', (socket) => {
     socket.on('active', userId => {
+      console.log('active: ' + userId);
       socket.userId = userId;
-      redis.set('active:' + userId, "1");
+      const res = redis.set('active:' + socket.id + ':' + userId, "1");
+      if (res) res.then(console.log).catch(console.error);
     });
 
-    socket.on('inactive', data => {
-      redis.del('active:' + socket.userId);
+    socket.on('inactive', userId => {
+      console.log('inactive: ' + socket.id);
+      batchDeletionKeysByPattern('active:' + socket.id + ':*')
     })
 
-    socket.on('disconnect', data => {
-      redis.del('active:' + socket.userId);
+    socket.on('disconnect', userId => {
+      console.log('disconnect: ' + socket.id);
+      batchDeletionKeysByPattern('active:' + socket.id + ':*')
     });
   });
 

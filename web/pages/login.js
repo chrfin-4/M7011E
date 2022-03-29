@@ -5,7 +5,6 @@ import { useApolloClient } from '@apollo/client';
 import { useMeQuery, useLoginMutation, MeDocument } from "../src/generated/graphql.ts";
 import { toErrorMap } from "../src/utils/toErrorMap";
 import { useRouter } from "next/router";
-import { withApollo } from "../src/utils/withApollo";
 import { TextField } from 'formik-material-ui';
 
 import { 
@@ -13,7 +12,6 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton} from '@material-ui/lab';
-import { withNoAuthentication } from "../src/utils/withAuthentication";
 import { isServer } from "../src/utils/isServer";
 
 const useStyles = makeStyles((theme) => ({
@@ -119,4 +117,4 @@ const Login = () => {
   );
 };
 
-export default withApollo({ ssr: true })(Login);
+export default Login;
