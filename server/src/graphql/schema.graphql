@@ -3,6 +3,12 @@
 # in the resolver map below.
 scalar Upload
 
+type SomeFile {
+  filename: String
+  mimetype: String
+  content: String
+}
+
 type Query {
   online: [User!]!
   users: [User!]!
@@ -22,6 +28,7 @@ type Mutation {
   unassignProsumer: Boolean
 
   setProfilePicture(file: Upload!): UploadResponse!
+  uploadFile(input: Upload!): SomeFile!
 }
 
 type FieldError {

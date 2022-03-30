@@ -7,6 +7,10 @@ const socketIo = require('socket.io');
 const originalFetch = require('cross-fetch');
 const fetch = require('fetch-retry')(originalFetch);
 
+// Os
+const glob = require("glob");
+const path = require("path");
+
 // GraphQL
 const { ApolloServer } = require('apollo-server-express');
 const { introspectSchema } = require('@graphql-tools/wrap');
@@ -21,14 +25,15 @@ const RedisStore = require('connect-redis')(session);
 // Local includes
 const makeRemoteExecutor = require('./graphql/makeRemoteExecutor');
 const localSchema = require('./graphql/localSchema');
-const { __prod__, COOKIE_NAME, PROD_DOMAIN_NAME } = require('./constants');
+const { __prod__, COOKIE_NAME, PROD_DOMAIN_NAME, SIM_ENDPOINT, CORS_ORIGIN, CRYPT_KEY, MONGO_CONNECTION, SRV_PORT, UPLOADS_PATH } = require('./constants');
 const { redis, batchDeletionKeysByPattern } = require('./redis');
+const { assertIsSignedIn, assertIsAuth } = require('./util/asserts');
 
 
 const makeGatewaySchema = async () => {
   // Make remote executors:
   // these are simple functions that query a remote GraphQL API for JSON.
-  const simulationExecutor = makeRemoteExecutor(process.env.SIM_ENDPOINT)
+  const simulationExecutor = makeRemoteExecutor(SIM_ENDPOINT)
 
   const gatewaySchema = stitchSchemas({
     subschemas: [
@@ -37,7 +42,8 @@ const makeGatewaySchema = async () => {
         // - Remote server must enable introspection.
         // - Custom directives are not included in introspection.
         schema: await introspectSchema(simulationExecutor),
-        executor: simulationExecutor
+        executor: simulationExecutor,
+        batch: true,
       },
       {
         // 4. Incorporate a locally-executable subschema.
@@ -45,6 +51,7 @@ const makeGatewaySchema = async () => {
         // Note that that the gateway still proxies through
         // to this same underlying executable schema instance.
         schema: localSchema,
+        batch: true,
       },
     ],
     resolvers: {
@@ -67,6 +74,7 @@ const main = async () => {
       res,
       redis
     }),
+    uploads: false
   });
   await apolloServer.start();
 
@@ -78,7 +86,7 @@ const main = async () => {
   // Express middlewares
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN,
+      origin: CORS_ORIGIN,
       credentials: true,
     })
   );
@@ -97,15 +105,41 @@ const main = async () => {
         domain: __prod__ ? PROD_DOMAIN_NAME : undefined,
       },
       saveUninitialized: false,
-      secret: process.env.CRYPT_KEY,
+      secret: CRYPT_KEY,
       resave: false,
     })
   );
 
+  // Endpoints
+  app.use('/profile/:id', (req, res, next) => {
+    assertIsSignedIn(req);
+    assertIsAuth(req);
+    console.log(req.params);
+    let files = glob.sync(path.join(UPLOADS_PATH, req.params.id + '_image.*'));
+    if (files.length === 0) {
+      res.sendStatus(404);
+      return
+    }
+    console.log(files);
+    res.sendFile(files[0]);
+  })
+
+  app.use('/profile', (req, res, next) => {
+    assertIsSignedIn(req);
+    console.log(req.session);
+    let files = glob.sync(path.join(UPLOADS_PATH, req.session.userId + '_image.*'));
+    if (files.length === 0) {
+      res.sendStatus(404);
+      return
+    }
+    console.log(files);
+    res.sendFile(files[0]);
+  });
+
   // Express Apollo middleware
   app.use(graphqlUploadExpress({
     maxFileSize: 10000000,
-    maxFiles: 20,
+    maxFiles: 1,
   }));
 
   apolloServer.applyMiddleware({
@@ -122,7 +156,7 @@ const main = async () => {
   // Socket io
   const io = socketIo(server, {
     cors: {
-      origin: process.env.CORS_ORIGIN,
+      origin: CORS_ORIGIN,
       credentials: true,
     }
   });
@@ -148,9 +182,9 @@ const main = async () => {
 
   // ==== Start server ====
 
-  mongoose.connect(process.env.MONGO_CONNECTION, {useNewUrlParser: true})
+  mongoose.connect(MONGO_CONNECTION, {useNewUrlParser: true})
     .then(() => {
-      server.listen(parseInt(process.env.SRV_PORT));
+      server.listen(parseInt(SRV_PORT));
     })
     .catch(err => {
       console.log(err);

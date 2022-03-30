@@ -47,6 +47,7 @@ const drawerWidth = 240;
 const useStyles = makeStyles((theme) => ({
   avatar: {
     backgroundColor: theme.palette.warning.main,
+    margin: 'auto',
   },
   avatarButton: {
     marginRight: "10px",
@@ -215,11 +216,8 @@ export const NavBar = ({ window }) => {
               (
                 <>
                   <Box className={clsx(classes.filler)} />
-                  <UploadFile/>
                   <label htmlFor="icon-button-file">
-                    <IconButton aria-label="Avatar" className={classes.avatarButton} component="span" >
-                      <Avatar className={classes.avatar} alt={data.me.name} />
-                    </IconButton>
+                    <UploadFile name={data.me.name} />
                   </label>
                   <LoadingButton
                     variant="contained" disableElevation className={clsx(classes.linkButton)}

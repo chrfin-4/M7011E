@@ -1,31 +1,25 @@
-const User = require("../../models/user");
-const { createClient } = require('redis');
-const { promisify } = require('util');
+const bcrypt = require('bcryptjs');
+const path = require("path");
+const glob = require("glob");
+const { createWriteStream, unlink } = require("fs");
+
 const { validateRegister } = require("../../util/validateRegister");
 const { validateUpdate } = require("../../util/validateUpdate");
-const bcrypt = require('bcryptjs');
+const User = require("../../models/user");
 
 const { getKeysByPattern } = require('../../redis');
-const { finished } = require("stream/promises");
+const { UPLOADS_DIR, UPLOADS_PATH } = require("../../constants");
+const { assertIsAuth, assertIsSignedIn } = require('../../util/asserts');
+
+// const { finished } = require("stream/promises");
 // const keysAsync = promisify(redis.keys).bind(redis);
 
-function assertIsSignedIn(context) {
-  if (!context.req.session.userId) {
-    throw new Error('Unauthorized');
-  }
-}
-
-function assertIsAuth(context) {
-  if (!context.req.session.userType >= 2) {
-    throw new Error('Unauthorized');
-  }
-}
 
 module.exports = {
   Query: {
-    online: async (_, args, context) => {
-      assertIsSignedIn(context);
-      assertIsAuth(context);
+    online: async (_, args, { req }) => {
+      assertIsSignedIn(req);
+      assertIsAuth(req);
 
       let ids;
       await getKeysByPattern('active:*').then((keys) => {
@@ -40,8 +34,8 @@ module.exports = {
 
       return res;
     },
-    users: async (_, args, context) => {
-      assertIsSignedIn(context);
+    users: async (_, args, { req }) => {
+      assertIsSignedIn(req);
       // assertIsAuth(context);
       const result = await User.find();
       return result.map((e) => {
@@ -49,22 +43,20 @@ module.exports = {
         return e;
       });
     },
-    user: async (_, {id}, context) => {
-      assertIsSignedIn(context);
+    user: async (_, {id}, { req }) => {
+      assertIsSignedIn(req);
       // assertIsAuth(context);
       const result = await User.findById(id);
       result.password = null;
       return result;
     },
-    me: async (_, args, context) => {
-      if (!context.req.session.userId) {
-        return null;
-      }
-      return await User.findById(context.req.session.userId);
+    me: async (_, args, { req }) => {
+      assertIsSignedIn(req);
+      return await User.findById(req.session.userId);
     }
   },
   Mutation: {
-    createUser: async (parent, args, context, info) => {
+    createUser: async (parent, args, { req }, info) => {
       try {
         const errors = validateRegister(args.userInput);
         if (errors) {
@@ -93,8 +85,8 @@ module.exports = {
 
         const result = await user.save();
 
-        context.req.session.userId = user.id;
-        context.req.session.userType = user.type;
+        req.session.userId = user.id;
+        req.session.userType = user.type;
 
         return { 
           user: {
@@ -108,9 +100,9 @@ module.exports = {
         throw err;
       }
     },
-    updateUser: async(_, {userId, userInput}, context) => {
-      assertIsSignedIn(context);
-      assertIsAuth(context);
+    updateUser: async(_, {userId, userInput}, { req }) => {
+      assertIsSignedIn(req);
+      assertIsAuth(req);
 
       try {
         const errors = validateUpdate(userInput);
@@ -143,7 +135,7 @@ module.exports = {
           type: userInput.type
         }, { new: true });
 
-        context.req.session.userType = user.type;
+        req.session.userType = user.type;
         return {
           user: {
             ...user._doc,
@@ -156,14 +148,14 @@ module.exports = {
         throw err;
       }
     },
-    deleteUser: async(_, {userId}, context) => {
-      assertIsSignedIn(context);
-      assertIsAuth(context);
+    deleteUser: async(_, {userId}, { res, req }) => {
+      assertIsSignedIn(req);
+      assertIsAuth(req);
       const user = await User.findByIdAndDelete(userId);
-      if (userId === context.req.session.userId) {
+      if (userId === req.session.userId) {
         return new Promise((resolve) => {
-          context.req.session.destroy((err) => {
-            context.res.clearCookie(COOKIE_NAME);
+          req.session.destroy((err) => {
+            res.clearCookie(COOKIE_NAME);
             if (err) {
               console.log(err);
               resolve(false);
@@ -175,9 +167,9 @@ module.exports = {
       }
       return true;
     },
-    assignProsumer: async(_, {prosumerId}, context) => {
-      assertIsSignedIn(context);
-      const user = await User.findById(context.req.session.userId);
+    assignProsumer: async(_, {prosumerId}, { req }) => {
+      assertIsSignedIn(req);
+      const user = await User.findById(req.session.userId);
       if (user.prosumerData.houseId !== undefined) {
         if (user.prosumerData.houseId !== null) {
           return false;
@@ -194,9 +186,9 @@ module.exports = {
 
       return true;
     },
-    unassignProsumer: async(_, args, context) => {
-      assertIsSignedIn(context);
-      const user = await User.findById(context.req.session.userId);
+    unassignProsumer: async(_, args, { req }) => {
+      assertIsSignedIn(req);
+      const user = await User.findById(req.session.userId);
       if (user.prosumerData.houseId === undefined) {
         return false;
       } 
@@ -209,24 +201,50 @@ module.exports = {
 
       return true;
     },
-    setProfilePicture: async(_, { file }, context) => {
-      // assertIsSignedIn(context);
-
-      console.log(file);
+    setProfilePicture: async(_, { file }, { req }) => {
+      assertIsSignedIn(req);
 
       const { createReadStream, filename, mimetype, encoding } = await file;
+      const stream = createReadStream();
+      const storedFileExt = filename.split('.').pop();
+      const storedFileName = req.session.userId + '_image.' + storedFileExt;
+      const storedFilePath = path.join(UPLOADS_PATH, storedFileName);
+
+      // We store files as '{userId}_image.{fileExtension}
+      // Here we get a list of image paths uploaded by the user
+      // Then remove any path that matches the image about to be uploaded
+      const deleteFiles = glob.sync(path.join(UPLOADS_PATH, req.session.userId + '_image.*'));
+      const index = deleteFiles.indexOf(storedFilePath);
+      if (index > -1) {
+        deleteFiles.splice(index, 1);
+      }
+      console.log(deleteFiles);
       
       // Invoking the `createReadStream` will return a Readable Stream.
       // See https://nodejs.org/api/stream.html#stream_readable_streams
-      const stream = createReadStream();
+      await new Promise((resolve, reject) => {
+        const writeStream = createWriteStream(storedFilePath);
 
-      // This is purely for demonstration purposes and will overwrite the
-      // local-file-output.txt in the current working directory on EACH upload.
-      const out = require('fs').createWriteStream('local-file-output.jpg');
-      stream.pipe(out);
-      await finished(out);
+        writeStream.on("finish", resolve);
+
+        writeStream.on("error", (error) => {
+          unlink(storedFilePath, () => {
+            reject(error);
+          });
+        });
+
+        stream.on("error", (error) => writeStream.destroy(error));
+
+        stream.pipe(writeStream);
+      }).then(() => {
+        deleteFiles.map((filePath) => {
+          unlink(filePath, err => {
+            // Idk..
+          });
+        })
+      });
 
       return { filename, mimetype, encoding };
-    }
+    },
   }
 }

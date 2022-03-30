@@ -1,11 +1,9 @@
-const Redis = require('ioredis')
-
-const host = process.env.REDIS_HOST;
-const port = process.env.REDIS_PORT;
+const Redis = require('ioredis');
+const { REDIS_HOST, REDIS_PORT } = require('./constants');
 
 const redis = new Redis({
-  ...(!!host && { host }),
-  ...(!!port && { port }),
+  host: REDIS_HOST,
+  port: REDIS_PORT
 });
 
 //key example "prefix*"

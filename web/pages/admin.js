@@ -578,7 +578,7 @@ const Admin = (ctx) => {
                                   badge: (online.includes(usr._id) ? classes.usrOnline : classes.usrOffline),
                                 }}
                               >
-                                <Avatar className={classes.avatar} alt={usr.name} />
+                                <Avatar className={classes.avatar} alt={usr.name} src={process.env.NEXT_PUBLIC_PROFILE_URL + '/' + usr._id} />
                               </Badge>
                               {usr._id === meData.me._id ? usr.name + " (YOU)" : usr.name}
                             </TableCell>
