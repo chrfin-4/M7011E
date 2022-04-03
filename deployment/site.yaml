@@ -3,7 +3,7 @@
   tasks:
     - name: Install certificates
       template: src=exerge.pem dest=/etc/ssl/exerge.pem
-    - name: Install HAProxy
+    - name: Install HAProxy # HAProxy
       apt: name=haproxy
     - name: Configure HAProxy
       template: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg
@@ -20,7 +20,7 @@
     - name: Deploy environment file
       template: src=envs dest=/home/ubuntu/envs
       become: false
-    - name: Get MongoDB pass 
+    - name: Get MongoDB pass # MongoDB
       shell: "grep /home/ubuntu/envs -oPe '(?<=DB_PWD=).*' | xargs echo -n" 
       register: password
     - name: Install MongoDB package signing key
@@ -31,7 +31,7 @@
       apt: name=mongodb-org update_cache=true
     - name: Start MongoDB
       systemd: state=started name=mongod daemon_reload=yes
-    - name: Create admin user
+    - name: Create admin user # User setup
       community.mongodb.mongodb_user:
         db: admin
         name: admin
@@ -48,20 +48,22 @@
         roles:
           - { db: "admin", role: "readWrite" }
           - { db: "m7011e", role: "readWrite" }
-    - name: Install NodeSource package signing key
+    - name: Install NodeSource package signing key # Node
       shell: curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
     - name: Install NodeSource repository
-      shell: echo "deb https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-    - shell: echo "deb-src https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
+      shell: echo "deb https://deb.nodesource.com/node_16.x $(lsb_release -s -c) main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+    - shell: echo "deb-src https://deb.nodesource.com/node_16.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
     - name: Install Node.js (urK)
       apt: name=nodejs update_cache=true
-    - name: Install Yarn package signing key
-      shell: curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-    - name: Install Yarn repository
-      shell: echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-    - name: Install Yarn
-      apt: name=yarn update_cache=true
-    - name: Download simulator
+    - name: Enable corepack
+      shell: corepack enable
+    - name: Install Redis # Redis
+      apt: name=redis-server
+    - name: Configure Redis
+      template: src=redis.conf dest=/etc/redis/redis.conf
+      notify:
+        - Restart Redis
+    - name: Download simulator # Project
       become: false
       git:
         repo: https://github.com/chrfin-4/M7011E.git
@@ -75,6 +77,11 @@
       copy: src=simulator.service dest=/etc/systemd/system/exerge_sim.service
     - name: Start server
       systemd: state=restarted name=exerge_sim daemon_reload=yes
+  handlers:
+    - name: Restart Redis
+      service:
+        name: redis
+        state: restarted
 - hosts: webservers
   become: yes
   tasks:
@@ -83,32 +90,22 @@
       become: false
     - name: Deploy nextjs environment file
       template: src=.env.local dest=/home/ubuntu/exerge/web/.env.local
-    - name: Install nginx
+    - name: Install nginx # Nginx
       apt: name=nginx
     - name: Configure nginx
       template: src=nginx-site.cfg dest=/etc/nginx/sites-available/default
       notify:
         - Restart Nginx
-    - name: Install NodeSource package signing key
+    - name: Install NodeSource package signing key # Node
       shell: curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
     - name: Install NodeSource repository
-      shell: echo "deb https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-    - shell: echo "deb-src https://deb.nodesource.com/node_14.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
+      shell: echo "deb https://deb.nodesource.com/node_16.x $(lsb_release -s -c) main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+    - shell: echo "deb-src https://deb.nodesource.com/node_16.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
     - name: Install Node.js (urK)
       apt: name=nodejs update_cache=true
-    - name: Install Yarn package signing key
-      shell: curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-    - name: Install Yarn repository
-      shell: echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-    - name: Install Yarn
-      apt: name=yarn update_cache=true
-    - name: Install Redis
-      apt: name=redis-server
-    - name: Configure Redis
-      template: src=redis.conf dest=/etc/redis/redis.conf
-      notify:
-        - Restart Redis
-    - name: Download application
+    - name: Enable corepack
+      shell: corepack enable
+    - name: Download application # Project
       become: false
       git:
         repo: https://github.com/chrfin-4/M7011E.git
@@ -136,9 +133,5 @@
     - name: Restart Nginx
       service:
         name: nginx
-        state: restarted
-    - name: Restart Redis
-      service:
-        name: redis
         state: restarted
     

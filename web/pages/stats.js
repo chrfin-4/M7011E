@@ -112,6 +112,8 @@ BatteryRow.propTypes = {
 };
 
 const Stats = ({}) => {
+  if (isServer()) return null; // Only use client side rendering
+
   const classes = useStyles();
   const router = useRouter();
   const [setChargeRatio] = useSetChargeRatioMutation();

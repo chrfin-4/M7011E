@@ -51,7 +51,7 @@ module.exports = {
       return result;
     },
     me: async (_, args, { req }) => {
-      assertIsSignedIn(req);
+      if (!req.session.userId) return null;
       return await User.findById(req.session.userId);
     }
   },

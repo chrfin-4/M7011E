@@ -199,6 +199,8 @@ BatteryRow.propTypes = {
 };
 
 const Admin = (ctx) => {
+  if (isServer()) return null; // Only use client side rendering
+
   const classes = useStyles();
   const router = useRouter();
   const apolloClient = useApolloClient();
@@ -229,6 +231,7 @@ const Admin = (ctx) => {
 
   // Queries
   const { data: meData, loading: meLoading } = useMeQuery({
+    fetchPolicy: skip ? 'cache-only' : 'cache-and-network',
     skip: isServer()
   });
 

@@ -225,7 +225,7 @@ export const NavBar = ({ window }) => {
                     onClick={async () => {
                       await logout();
                       await apolloClient.resetStore();
-                      router.push("/");
+                      router.push("/login");
                     }}
                     pending={logoutFetching}
                   >

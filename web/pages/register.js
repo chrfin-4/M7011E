@@ -29,6 +29,8 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const Register = ({}) => {
+  if (isServer()) return null; // Only use client side rendering
+
   const classes = useStyles();
   const router = useRouter();
   const [register] = useCreateUserMutation();

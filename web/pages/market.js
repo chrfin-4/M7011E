@@ -54,6 +54,8 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const Market = ({}) => {
+  if (isServer()) return null; // Only use client side rendering
+
   const classes = useStyles();
   const router = useRouter();
   const [purchase] = usePurchaseMutation();
@@ -63,13 +65,11 @@ const Market = ({}) => {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
 
-  const { data: meData, loading: meLoading } = useMeQuery({
-    skip: isServer(),
-  });
+  const { data: meData, loading: meLoading } = useMeQuery();
 
-  const skip = isServer() || meData?.me === undefined || meData?.me === null;
+  const skip = meData?.me === undefined || meData?.me === null;
 
-  // fetchPolicy needs to be set due to a but in apolloclient where if
+  // fetchPolicy needs to be set due to a bug in apolloclient where if
   // skip is set to a variable it won't work.
   const { data: oData, loading: oLoading } = useOwnedQuery({
     fetchPolicy: skip ? 'cache-only' : 'cache-and-network',
@@ -81,20 +81,17 @@ const Market = ({}) => {
     skip: skip,
   });
 
+  console.log(meData);
+  
   // Redirect if already signed in
   if (meLoading) return null;
-  if (isServer()) { // Serverside
-    if (!meData?.me || meData.me === null) return null; // If not signed in
-    if (!meData?.me.type >= 1) return null; // If not prosumer
-  }
-  else { // Client side
-    if (!meData?.me || meData.me === null) {
-      router.push("/login");
-      return null;
-    } // If not signed in
-    if (!meData?.me.type >= 1) return null; // If not prosumer
-  }
+  if (!meData?.me || meData.me === null) {
+    router.push("/login");
+    return null;
+  } // If not signed in
+  if (!meData?.me.type >= 1) return null; // If not prosumer
   if (pLoading || oLoading) return null;
+
 
   let body1 = null;
 

@@ -1,8 +1,11 @@
 import { Typography } from '@material-ui/core';
 import React from 'react';
 import { useMeQuery } from "../src/generated/graphql.ts";
+import { isServer } from '../src/utils/isServer';
 
 const Index = (p) => {
+  if (isServer()) return null; // Only use client side rendering
+
   const { data } = useMeQuery();
 
   return (
