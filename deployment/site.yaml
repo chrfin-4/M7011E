@@ -1,137 +1,260 @@
 - hosts: loadbalancers
-  become: yes
+  become: true
   tasks:
     - name: Install certificates
-      template: src=exerge.pem dest=/etc/ssl/exerge.pem
+      ansible.builtin.copy:
+        src: exerge.pem
+        dest: /etc/ssl/exerge.pem
+        mode: '0600'
+
     - name: Install HAProxy # HAProxy
-      apt: name=haproxy
+      ansible.builtin.apt:
+        name: haproxy
+
     - name: Configure HAProxy
-      template: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg
+      ansible.builtin.template:
+        src: haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        mode: '0644'
       notify:
         - Restart HAProxy
+
   handlers:
     - name: Restart HAProxy
-      service:
+      ansible.builtin.service:
         name: haproxy
         state: restarted
+
+
 - hosts: dbservers
-  become: yes
+  become: true
   tasks:
-    - name: Deploy environment file
-      template: src=envs dest=/home/ubuntu/envs
-      become: false
-    - name: Get MongoDB pass # MongoDB
-      shell: "grep /home/ubuntu/envs -oPe '(?<=DB_PWD=).*' | xargs echo -n" 
-      register: password
-    - name: Install MongoDB package signing key
-      shell: wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+    - name: Install MongoDB package signing key # MongoDB
+      ansible.builtin.apt_key:
+        url: https://www.mongodb.org/static/pgp/server-4.4.asc
+        state: present
+
     - name: Install MongoDB repository
-      shell: echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+      ansible.builtin.apt_repository:
+        repo: deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse
+        state: present
+        filename: mongodb-org-4.4
+
     - name: Install MongoDB
-      apt: name=mongodb-org update_cache=true
+      ansible.builtin.apt:
+        name: mongodb-org
+        update_cache: true
+
     - name: Start MongoDB
-      systemd: state=started name=mongod daemon_reload=yes
+      ansible.builtin.systemd: state=started name=mongod daemon_reload=yes
+
     - name: Create admin user # User setup
       community.mongodb.mongodb_user:
         db: admin
         name: admin
-        pass: "{{password.stdout}}"
+        pass: "{{ mongodb_admin_password }}"
         state: present
         roles: root
+
     - name: Create user
       community.mongodb.mongodb_user:
         login_user: admin
-        login_password: "{{password.stdout}}"
-        database: m7011e
-        name: ubuntu
-        pass: "{{password.stdout}}"
+        login_password: "{{ mongodb_admin_password }}"
+        database: "{{ mongodb_database }}"
+        name: "{{ mongodb_user }}"
+        pass: "{{ mongodb_password }}"
         roles:
-          - { db: "admin", role: "readWrite" }
-          - { db: "m7011e", role: "readWrite" }
+          - db: "admin"
+            role: "readWrite"
+          - db: "{{ mongodb_database }}"
+            role: "readWrite"
+
     - name: Install NodeSource package signing key # Node
-      shell: curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
+      ansible.builtin.apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+        state: present
+
     - name: Install NodeSource repository
-      shell: echo "deb https://deb.nodesource.com/node_16.x $(lsb_release -s -c) main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-    - shell: echo "deb-src https://deb.nodesource.com/node_16.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
+      ansible.builtin.apt_repository:
+        repo: deb https://deb.nodesource.com/node_16.x {{ ansible_lsb.codename }} main
+        state: present
+        filename: nodesource
+
+    - name: Install NodeSource-src repository
+      ansible.builtin.apt_repository:
+        repo: deb-src https://deb.nodesource.com/node_16.x {{ ansible_lsb.codename }} main
+        state: present
+        filename: nodesource-src
+
     - name: Install Node.js (urK)
-      apt: name=nodejs update_cache=true
+      ansible.builtin.apt:
+        name: nodejs
+        update_cache: true
+
     - name: Enable corepack
-      shell: corepack enable
+      ansible.builtin.command: corepack enable
+      changed_when: false
+
     - name: Install Redis # Redis
-      apt: name=redis-server
+      ansible.builtin.apt:
+        name: redis-server
+
     - name: Configure Redis
-      template: src=redis.conf dest=/etc/redis/redis.conf
+      ansible.builtin.template:
+        src: redis.conf.j2
+        dest: /etc/redis/redis.conf
+        mode: '0644'
       notify:
         - Restart Redis
+
     - name: Download simulator # Project
       become: false
-      git:
+      ansible.builtin.git:
         repo: https://github.com/chrfin-4/M7011E.git
         dest: /home/ubuntu/exerge
         depth: 1
-        force: yes
-    - name: Yarn install
-      shell: yarn --cwd /home/ubuntu/exerge/simulator install
+        force: true
+      register: simulator_repo
+
+    - name: Deploy environment file
+      ansible.builtin.template:
+        src: envs_simulator.j2
+        dest: "{{ repo_dest }}/simulator/.env"
+        mode: '0644'
       become: false
+      register: simulator_env
+
+    - name: Yarn install
+      community.general.yarn:
+        path: "{{ repo_dest }}/simulator"
+      become: false
+
     - name: Install simulator in systemd
-      copy: src=simulator.service dest=/etc/systemd/system/exerge_sim.service
+      ansible.builtin.template:
+        src: simulator.service.j2
+        dest: /etc/systemd/system/exerge_sim.service
+        mode: '0644'
+
     - name: Start server
-      systemd: state=restarted name=exerge_sim daemon_reload=yes
+      ansible.builtin.systemd:
+        state: restarted
+        name: exerge_web
+        daemon_reload: true
+
   handlers:
     - name: Restart Redis
-      service:
+      ansible.builtin.service:
         name: redis
         state: restarted
+
+
 - hosts: webservers
-  become: yes
+  become: true
   tasks:
-    - name: Deploy environment file
-      template: src=envs dest=/home/ubuntu/envs
-      become: false
-    - name: Deploy nextjs environment file
-      template: src=.env.local dest=/home/ubuntu/exerge/web/.env.local
     - name: Install nginx # Nginx
-      apt: name=nginx
+      ansible.builtin.apt:
+        name: nginx
+
     - name: Configure nginx
-      template: src=nginx-site.cfg dest=/etc/nginx/sites-available/default
+      ansible.builtin.template:
+        src: nginx-site.cfg.j2
+        dest: /etc/nginx/sites-available/default
+        mode: '0644'
       notify:
         - Restart Nginx
+
     - name: Install NodeSource package signing key # Node
-      shell: curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
+      ansible.builtin.apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+        state: present
+
     - name: Install NodeSource repository
-      shell: echo "deb https://deb.nodesource.com/node_16.x $(lsb_release -s -c) main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-    - shell: echo "deb-src https://deb.nodesource.com/node_16.x $(lsb_release -s -c) main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
+      ansible.builtin.apt_repository:
+        repo: deb https://deb.nodesource.com/node_16.x {{ ansible_lsb.codename }} main
+        state: present
+        filename: nodesource
+
+    - name: Install NodeSource-src repository
+      ansible.builtin.apt_repository:
+        repo: deb-src https://deb.nodesource.com/node_16.x {{ ansible_lsb.codename }} main
+        state: present
+        filename: nodesource-src
+
     - name: Install Node.js (urK)
-      apt: name=nodejs update_cache=true
+      ansible.builtin.apt:
+        name: nodejs
+        update_cache: true
+
     - name: Enable corepack
-      shell: corepack enable
+      ansible.builtin.command: corepack enable
+      changed_when: false
+
     - name: Download application # Project
       become: false
-      git:
+      ansible.builtin.git:
         repo: https://github.com/chrfin-4/M7011E.git
         dest: /home/ubuntu/exerge
         depth: 1
-        force: yes
+        force: true
+
+    - name: Deploy server environment file
+      ansible.builtin.template:
+        src: envs_server.j2
+        dest: "{{ repo_dest }}/server/.env"
+        mode: '0644'
+      become: false
+      register: server_env
+
+    - name: Deploy web environment file
+      ansible.builtin.template:
+        src: envs_web.j2
+        dest: "{{ repo_dest }}/web/.env.local"
+        mode: '0644'
+      become: false
+      register: web_env
+
     - name: Yarn install server
       become: false
-      shell: yarn --cwd /home/ubuntu/exerge/server install
+      community.general.yarn:
+        path: "{{ repo_dest }}/server"
+
     - name: Yarn install web
       become: false
-      shell: yarn --cwd /home/ubuntu/exerge/web install
+      community.general.yarn:
+        path: "{{ repo_dest }}/web"
+
     - name: Build frontend
       become: false
-      shell: yarn --cwd /home/ubuntu/exerge/web build 
+      ansible.builtin.command: yarn --cwd {{ repo_dest }}/web build
+      register: yarn_build
+      changed_when: yarn_build.rc == 0
+
     - name: Install server in systemd
-      copy: src=server.service dest=/etc/systemd/system/exerge.service
+      ansible.builtin.template:
+        src: server.service.j2
+        dest: /etc/systemd/system/exerge.service
+        mode: '0644'
+
     - name: Install webapp in systemd
-      copy: src=webapp.service dest=/etc/systemd/system/exerge_web.service
+      ansible.builtin.template:
+        src: webapp.service.j2
+        dest: /etc/systemd/system/exerge_web.service
+        mode: '0644'
+
     - name: Start server
-      systemd: state=restarted name=exerge daemon_reload=yes
+      ansible.builtin.systemd:
+        state: restarted
+        name: exerge
+        daemon_reload: true
+
     - name: Start webapp
-      systemd: state=restarted name=exerge_web daemon_reload=yes
+      ansible.builtin.systemd:
+        state: restarted
+        name: exerge_web
+        daemon_reload: true
+
   handlers:
     - name: Restart Nginx
-      service:
+      ansible.builtin.service:
         name: nginx
         state: restarted
-    

@@ -1,9 +1,10 @@
 const Redis = require('ioredis');
-const { REDIS_HOST, REDIS_PORT } = require('./constants');
+const { REDIS_HOST, REDIS_PORT, REDIS_PASSWORD } = require('./constants');
 
 const redis = new Redis({
   host: REDIS_HOST,
-  port: REDIS_PORT
+  port: REDIS_PORT,
+  password: REDIS_PASSWORD,
 });
 
 //key example "prefix*"

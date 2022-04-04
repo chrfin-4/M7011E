@@ -1,4 +1,5 @@
 **/uploads/*
+**/vault_password
 
 # Certificates
 *.pem

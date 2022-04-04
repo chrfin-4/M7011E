@@ -12,6 +12,7 @@ const CORS_ORIGIN = (process.env.CORS_ORIGIN) ? process.env.CORS_ORIGIN : "http:
 const UPLOADS_DIR = (process.env.UPLOADS_DIR) ? process.env.UPLOADS_DIR : "./uploads";
 const REDIS_HOST = (process.env.REDIS_HOST) ? process.env.REDIS_HOST : "127.0.0.1";
 const REDIS_PORT = (process.env.REDIS_PORT) ? process.env.REDIS_PORT : 6379;
+const REDIS_PASSWORD = (process.env.REDIS_PASSWORD) ? process.env.REDIS_PASSWORD : null;
 const SRV_PORT = (process.env.SRV_PORT) ? process.env.SRV_PORT : 8080;
 
 const UPLOADS_PATH = path.join(__dirname, '..', UPLOADS_DIR);
@@ -30,5 +31,6 @@ module.exports = {
   SRV_PORT: SRV_PORT,
   REDIS_HOST: REDIS_HOST,
   REDIS_PORT: REDIS_PORT,
+  REDIS_PASSWORD: REDIS_PASSWORD,
   UPLOADS_PATH: UPLOADS_PATH
 }; 

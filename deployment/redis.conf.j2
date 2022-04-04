@@ -1,6 +1,7 @@
-bind 127.0.0.1
+bind {{ ansible_default_ipv4.address }}
+port {{ redis_port }}
+requirepass {{ redis_password }}
 protected-mode yes
-port 6379
 tcp-backlog 511
 timeout 0
 tcp-keepalive 300
