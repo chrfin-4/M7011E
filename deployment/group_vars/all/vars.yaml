@@ -1,22 +1,22 @@
 domain: exerge.akerstrom.dev
 repo_dest: /home/ubuntu/exerge
 
-mongodb_host: {{ groups['dbservers'][0] }}
-mongodb_user: {{ vault_mongodb_user }}
-mongodb_password: {{ vault_mongodb_password }}
-mongodb_database: {{ vault_mongodb_database }}
-mongodb_admin_password: {{ vault_mongodb_admin_password }}
+mongodb_host: "{{ groups['dbservers'][0] }}"
+mongodb_user: "{{ vault_mongodb_user }}"
+mongodb_password: "{{ vault_mongodb_password }}"
+mongodb_database: "{{ vault_mongodb_database }}"
+mongodb_admin_password: "{{ vault_mongodb_admin_password }}"
 mongodb_string_options: retryWrites=true&w=majority
 mongodb_string: mongodb+srv://{{ mongodb_user }}:{{ mongodb_password }}@{{ mongodb_host }}/{{ mongodb_database }}?{{ mongodb_string_options }}
 
-jwt_secret: {{ vault_jwt_secret }}
+jwt_secret: "{{ vault_jwt_secret }}"
 
 http_port: 8080
 
-redis_url: {{ groups['dbservers'][0] }}
+redis_url: "{{ groups['dbservers'][0] }}"
 redis_port: 6379
-redis_user: {{ vault_redis_user }}
-redis_password: {{ vault_redis_password }}
+redis_user: "{{ vault_redis_user }}"
+redis_password: "{{ vault_redis_password }}"
 
 simulator_url: http://{{ groups['dbservers'][0] }}:{{ http_port }}/graphql
 cors_origin: https://{{ domain }}
