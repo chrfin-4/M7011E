@@ -46,9 +46,9 @@
 
     - name: Install MongoDB repository
       ansible.builtin.apt_repository:
-        repo: deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu {{ ansible_lsb.codename }}/mongodb-org/4.4 multiverse
+        repo: deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu {{ ansible_lsb.codename }}/mongodb-org/5.0 multiverse
         state: present
-        filename: mongodb-org-4.4
+        filename: mongodb-org-5.0
 
     - name: Install MongoDB
       ansible.builtin.apt:
@@ -56,10 +56,16 @@
         state: present
         update_cache: true
 
+    - name: Configure MongoDB
+      ansible.builtin.template:
+        src: mongod.conf.j2
+        dest: /etc/mongod.conf
+        mode: '0644'
+
     - name: Start MongoDB
       ansible.builtin.systemd:
         name: mongod
-        state: started
+        state: restarted
         daemon_reload: true
 
     - name: Create admin user # User setup
@@ -152,7 +158,7 @@
     - name: Start server
       ansible.builtin.systemd:
         state: restarted
-        name: exerge_web
+        name: exerge_sim
         daemon_reload: true
 
   handlers:
