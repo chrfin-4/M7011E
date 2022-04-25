@@ -145,9 +145,12 @@
       register: simulator_env
 
     - name: Yarn install
-      community.general.yarn:
-        path: "{{ repo_dest }}/simulator"
+      ansible.builtin.command:
+        chdir: "{{ repo_dest }}/simulator"
+        cmd: "yarn install"
       become: false
+      register: yarn_install
+      changed_when: yarn_install.rc == 0
 
     - name: Install simulator in systemd
       ansible.builtin.template:
@@ -234,18 +237,26 @@
       register: web_env
 
     - name: Yarn install server
+      ansible.builtin.command:
+        chdir: "{{ repo_dest }}/server"
+        cmd: "yarn install"
       become: false
-      community.general.yarn:
-        path: "{{ repo_dest }}/server"
+      register: yarn_install
+      changed_when: yarn_install.rc == 0
 
     - name: Yarn install web
+      ansible.builtin.command:
+        chdir: "{{ repo_dest }}/web"
+        cmd: "yarn install"
       become: false
-      community.general.yarn:
-        path: "{{ repo_dest }}/web"
+      register: yarn_install
+      changed_when: yarn_install.rc == 0
 
     - name: Build frontend
       become: false
-      ansible.builtin.command: yarn --cwd {{ repo_dest }}/web build
+      ansible.builtin.command:
+        chdir: "{{ repo_dest }}/web"
+        cmd: "yarn build"
       register: yarn_build
       changed_when: yarn_build.rc == 0
 

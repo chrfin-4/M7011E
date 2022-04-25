@@ -13,7 +13,7 @@ jwt_secret: "{{ vault_jwt_secret }}"
 
 http_port: 8080
 
-redis_url: "{{ groups['dbservers'][0] }}"
+redis_host: "{{ groups['dbservers'][0] }}"
 redis_port: 6379
 redis_user: "{{ vault_redis_user }}"
 redis_password: "{{ vault_redis_password }}"
