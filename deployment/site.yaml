@@ -38,7 +38,7 @@
       ansible.builtin.pip:
         name: pymongo
         state: present
-      
+
     - name: Install MongoDB package signing key # MongoDB
       ansible.builtin.apt_key:
         url: https://www.mongodb.org/static/pgp/server-5.0.asc
@@ -112,7 +112,8 @@
         update_cache: true
 
     - name: Enable corepack
-      ansible.builtin.command: corepack enable
+      ansible.builtin.command:
+        cmd: "corepack enable"
       changed_when: false
 
     - name: Install Redis # Redis
@@ -124,8 +125,11 @@
         src: redis.conf.j2
         dest: /etc/redis/redis.conf
         mode: '0644'
-      notify:
-        - Restart Redis
+
+    - name: Restart Redis
+      ansible.builtin.service:
+        name: redis
+        state: restarted
 
     - name: Download simulator # Project
       become: false
@@ -209,7 +213,8 @@
         update_cache: true
 
     - name: Enable corepack
-      ansible.builtin.command: corepack enable
+      ansible.builtin.command:
+        cmd: "corepack enable"
       changed_when: false
 
     - name: Download application # Project
