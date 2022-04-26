@@ -5,11 +5,11 @@ protected-mode yes
 tcp-backlog 511
 timeout 0
 tcp-keepalive 300
-daemonize no
-supervised no
-pidfile /var/run/redis_6379.pid
+daemonize yes
+supervised systemd
+pidfile /var/run/redis/redis-server.pid
 loglevel notice
-logfile ""
+logfile /var/log/redis/redis-server.log
 databases 16
 always-show-logo yes
 save 900 1
@@ -19,7 +19,7 @@ stop-writes-on-bgsave-error yes
 rdbcompression yes
 rdbchecksum yes
 dbfilename dump.rdb
-dir ./
+dir /var/lib/redis
 replica-serve-stale-data yes
 replica-read-only yes
 repl-diskless-sync no
