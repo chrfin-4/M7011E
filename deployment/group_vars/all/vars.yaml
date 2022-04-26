@@ -7,7 +7,7 @@ mongodb_password: "{{ vault_mongodb_password }}"
 mongodb_database: "{{ vault_mongodb_database }}"
 mongodb_admin_password: "{{ vault_mongodb_admin_password }}"
 mongodb_string_options: retryWrites=true&w=majority
-mongodb_string: mongodb+srv://{{ mongodb_user }}:{{ mongodb_password }}@{{ mongodb_host }}/{{ mongodb_database }}?{{ mongodb_string_options }}
+mongodb_string: mongodb://{{ mongodb_user }}:{{ mongodb_password }}@{{ mongodb_host }}/{{ mongodb_database }}?{{ mongodb_string_options }}
 
 jwt_secret: "{{ vault_jwt_secret }}"
 

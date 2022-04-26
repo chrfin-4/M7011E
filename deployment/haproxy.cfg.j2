@@ -52,7 +52,7 @@ backend app
 	timeout connect 10s
 	timeout server 1m
 	balance roundrobin
-  # cookie SRV insert indirect nocache
+  cookie SRV insert indirect nocache
 	{% for srv in groups.webservers %}
-    server backend_{{ loop.index }} {{ srv }}:80 maxconn 1000 check # cookie backend_{{ loop.index }}
+    server backend_{{ loop.index }} {{ srv }}:80 maxconn 1000 check cookie backend_{{ loop.index }}
 	{% endfor %}
