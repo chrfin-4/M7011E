@@ -6,17 +6,20 @@ import { useRouter } from "next/router";
 import { isServer } from "../src/utils/isServer";
 
 import { Formik, Form, Field } from "formik";
-import { TextField, RadioGroup } from 'formik-material-ui';
+import { TextField } from 'formik-material-ui';
 
 import clsx from 'clsx';
 import { 
   Box,
   Radio,
+  RadioGroup,
+  FormLabel,
   FormControlLabel,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton} from '@material-ui/lab';
 import { withNoAuthentication } from '../src/utils/withAuthentication';
+import { FormControl } from '@mui/material';
 
 const useStyles = makeStyles((theme) => ({
   form: {
@@ -75,8 +78,9 @@ const Register = ({}) => {
           }
         }}
       >
-        {({ isSubmitting }) => (
+        {({ values, isSubmitting, setFieldValue }) => (
           <Form>
+            <FormControl component="fieldset">
             <Box className={clsx(classes.formField)}>
               <Field
                 component={TextField}
@@ -102,29 +106,25 @@ const Register = ({}) => {
               />
             </Box>
             <Box className={clsx(classes.formField)}>
-                  <Field label="Type of user" component={RadioGroup} name="type">
-                    {/*
-                    <FormControlLabel
-                      control={<Radio disabled={isSubmitting}/>}
-                      label="Consumer"
-                      value="0"
-                      disabled={isSubmitting}
-                    />
-                    */}
-                    <FormControlLabel
-                      control={<Radio disabled={isSubmitting}/>}
-                      label="Prosumer"
-                      value="1"
-                      disabled={isSubmitting}
-                    />
-                    <FormControlLabel
-                      control={<Radio disabled={isSubmitting}/>}
-                      label="Manager"
-                      value="2"
-                      disabled={isSubmitting}
-                    />
-                  </Field>
+                <FormLabel component="legend">Type of user</FormLabel>
+                <RadioGroup name="type" value={values.type.toString()} onChange={(event) => {
+                  setFieldValue("type", event.currentTarget.value)
+                }}>
+                  <FormControlLabel
+                    control={<Radio disabled={isSubmitting}/>}
+                    disabled={isSubmitting}
+                    label="Prosumer"
+                    value="1"
+                  />
+                  <FormControlLabel
+                    control={<Radio disabled={isSubmitting}/>}
+                    disabled={isSubmitting}
+                    label="Manager"
+                    value="2"
+                  />
+                </RadioGroup>
             </Box>
+            <Box>Type: {values.type}</Box>
             <LoadingButton
               mt={4}
               type="submit"
@@ -132,6 +132,7 @@ const Register = ({}) => {
             >
               register
             </LoadingButton>
+            </FormControl>
           </Form>
         )}
       </Formik>
