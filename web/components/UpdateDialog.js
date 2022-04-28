@@ -7,12 +7,15 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import { Form, Formik, Field } from 'formik';
-import { TextField, RadioGroup } from 'formik-material-ui';
+import { TextField } from 'formik-material-ui';
 import { toErrorMap } from '../src/utils/toErrorMap';
 import clsx from 'clsx';
 import {
   Box,
   Radio,
+  RadioGroup,
+  FormLabel,
+  FormControl,
   FormControlLabel,
 } from '@material-ui/core';
 import { withStyles } from '@material-ui/core/styles';
@@ -66,65 +69,70 @@ class UpdateDialog extends React.Component {
               }
             }}
           >
-            {({ isSubmitting }) => (
+            {({ values, isSubmitting, setFieldValue }) => (
               <Form>
-                <DialogContent>
-                  <DialogContentText>
-                    Update user information.
-                  </DialogContentText>
-                  <Box className={clsx(classes.formField)}>
-                    <Field
-                      component={TextField}
-                      name="name"
-                      label="Name"
-                    />
-                  </Box>
-                  <Box className={clsx(classes.formField)}>
-                    <Field
-                      component={TextField}
-                      name="email"
-                      label="Email"
-                      id="email"
-                    />
-                  </Box>
-                  <Box className={clsx(classes.formField)}>
-                    <Field
-                      component={TextField}
-                      name="password"
-                      label="Password"
-                      id="password"
-                      type="password"
-                    />
-                  </Box>
-                  <Box className={clsx(classes.formField)}>
-                    <Field label="Type of user" component={RadioGroup} name="type">
-                      <FormControlLabel
-                        control={<Radio disabled={isSubmitting} />}
-                        label="Prosumer"
-                        value="1"
-                        disabled={isSubmitting}
+                <FormControl component="fieldset">
+                  <DialogContent>
+                    <DialogContentText>
+                      Update user information.
+                    </DialogContentText>
+                    <Box className={clsx(classes.formField)}>
+                      <Field
+                        component={TextField}
+                        name="name"
+                        label="Name"
                       />
-                      <FormControlLabel
-                        control={<Radio disabled={isSubmitting} />}
-                        label="Manager"
-                        value="2"
-                        disabled={isSubmitting}
+                    </Box>
+                    <Box className={clsx(classes.formField)}>
+                      <Field
+                        component={TextField}
+                        name="email"
+                        label="Email"
+                        id="email"
                       />
-                    </Field>
-                  </Box>
-                </DialogContent>
-                <DialogActions>
-                  <Button onClick={this.handleClose} color="primary">
-                    Cancel
-                  </Button>
-                  <LoadingButton
-                    mt={4}
-                    type="submit"
-                    pending={isSubmitting}
-                  >
-                    Update
-                  </LoadingButton>
-                </DialogActions>
+                    </Box>
+                    <Box className={clsx(classes.formField)}>
+                      <Field
+                        component={TextField}
+                        name="password"
+                        label="Password"
+                        id="password"
+                        type="password"
+                      />
+                    </Box>
+                    <Box className={clsx(classes.formField)}>
+                      <FormLabel component="legend">Type of user</FormLabel>
+                      <RadioGroup name="type" value={values.type.toString()} onChange={(event) => {
+                        setFieldValue("type", event.currentTarget.value)
+                      }}>
+                        <FormControlLabel
+                          control={<Radio disabled={isSubmitting}/>}
+                          disabled={isSubmitting}
+                          label="Prosumer"
+                          value="1"
+                        />
+                        <FormControlLabel
+                          control={<Radio disabled={isSubmitting}/>}
+                          disabled={isSubmitting}
+                          label="Manager"
+                          value="2"
+                        />
+                      </RadioGroup>
+                    </Box>
+                  </DialogContent>
+                  <DialogActions>
+                    <Button onClick={this.handleClose} color="primary">
+                      Cancel
+                    </Button>
+                    <LoadingButton
+                      mt={4}
+                      type="submit"
+                      pending={isSubmitting}
+                    >
+                      Update
+                    </LoadingButton>
+                  </DialogActions>
+                </FormControl>
               </Form>
             )}
           </Formik>

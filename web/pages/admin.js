@@ -1,8 +1,37 @@
 import React from 'react'
+import { useRouter } from 'next/router';
 import PropTypes from 'prop-types';
-import UpdateDialog from '../components/UpdateDialog';
+
+import { useApolloClient } from '@apollo/client';
+import {useQuery} from '@apollo/client';
+import combineQuery from 'graphql-combine-query';
+import { 
+  useMeQuery, 
+  useOwnedQuery,
+  useProsumerDataQuery,
+  useDeleteUserMutation,
+  useUpdateUserMutation,
+  useBanProducerMutation,
+  useSetChargeRatioMutation,
+  useSetProductionLevelMutation,
+  useSetElectricityPriceMutation,
+
+  OnlineDocument,
+  MarketDataDocument,
+  ManagerDataDocument,
+  HasBlackoutDocument,
+} from '../src/generated/graphql.ts'
+
+import { powConv } from '../src/utils/powConv';
+import { isServer } from '../src/utils/isServer';
+
+import { Field, Form, Formik } from 'formik';
+import { TextField } from 'formik-material-ui';
+
 import clsx from 'clsx';
 import {
+  Avatar,
+  Badge,
   Box,
   Button,
   Collapse,
@@ -10,57 +39,23 @@ import {
   IconButton,
   Paper,
   Table,
-  TableRow,
-  TableCell,
-  TableHead,
   TableBody,
-  TableFooter,
+  TableCell,
   TableContainer,
+  TableFooter,
+  TableHead,
   TablePagination,
+  TableRow,
   Typography,
-  Badge,
-  Avatar,
-  colors,
 } from '@material-ui/core';
-import { makeStyles, unstable_createMuiStrictModeTheme, withStyles } from '@material-ui/core/styles';
+import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton } from '@material-ui/lab';
-import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
-import combineQuery from 'graphql-combine-query';
-import {useQuery} from '@apollo/client';
+import {
+  KeyboardArrowDown,
+  KeyboardArrowUp
+} from '@material-ui/icons'
 
-import { 
-  useMeQuery, 
-  useOwnedQuery,
-  useOnlineQuery,
-  useMarketDataQuery,
-  useManagerDataQuery,
-  useProsumerDataQuery,
-  useProsumersDataQuery, 
-  useDeleteUserMutation,
-  useUpdateUserMutation,
-  useBanProducerMutation,
-  useSetChargeRatioMutation,
-  useTurnProductionOnMutation,
-  useTurnProductionOffMutation,
-  useSetProductionLevelMutation,
-  useSetElectricityPriceMutation,
-
-  MeDocument, 
-  OwnedDocument,
-  OnlineDocument,
-  MarketDataDocument,
-  ManagerDataDocument,
-  HasBlackoutDocument,
-  ProsumerDataDocument,
-  ProsumersDataDocument,
-} from '../src/generated/graphql.ts'
-import { isServer } from '../src/utils/isServer';
-import { useRouter } from 'next/router';
-import { ApolloClient, useApolloClient } from '@apollo/client';
-import { TextField } from 'formik-material-ui';
-import { Field, Form, Formik } from 'formik';
-import { powConv } from '../src/utils/powConv';
+import UpdateDialog from '../components/UpdateDialog';
 
 // Combine polling queries
 const { document: nohDocument } = combineQuery('nohPollingQuery')
@@ -72,6 +67,9 @@ const { document: nohDocument } = combineQuery('nohPollingQuery')
 const useStyles = makeStyles((theme) => ({
   avatar: {
     backgroundColor: theme.palette.warning.main,
+  },
+  test: {
+    padding: '16.5px 14px',
   },
   tableCell: {
     left: 'auto',
@@ -154,7 +152,7 @@ function BatteryRow(props) {
             size="small"
             onClick={() => setOpen(!open)}
           >
-            {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+            {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
           </IconButton>
         </TableCell>
         <TableCell aria-label="expand row" align="right">
@@ -198,7 +196,7 @@ BatteryRow.propTypes = {
   capacity: PropTypes.number,
 };
 
-const Admin = (ctx) => {
+const Admin = ({}) => {
   if (isServer()) return null; // Only use client side rendering
 
   const classes = useStyles();
@@ -297,469 +295,504 @@ const Admin = (ctx) => {
     setPage(0);
   }
 
-  return (
-    <Box sx={{ overflow: "hidden", mx: 2 }}>
-      <UpdateDialog
-        open={editUser.open}
-        user={editUser.user}
-        close={() => {
-          setEditUser(prevState => {
-            return { open: false, user: prevState.user }
-          });
-        }}
-        update={ async (userId, values) => {
-          return updateUser({
-            variables: {
-              userId: userId,
-              userInput: values
-            }
-          })
-        }}
-      />
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6} lg={4}>
-          <TableContainer component={Paper} className={clsx(classes.paper)}>
-            <Typography variant="h6">
-              Market
-            </Typography>
-            <Table className={clsx(classes.table)} aria-label="simple table">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Stat</TableCell>
-                  <TableCell align="right">Data</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Market demand</TableCell>
-                  <TableCell align="right">{powConv(mdState.marketDemand)}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Current price</TableCell>
-                  <TableCell align="right">{(mdState.currentPrice / 100).toFixed(2) + " kr/kWh"}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Modeled price</TableCell>
-                  <TableCell align="right">{(mdState.modeledPrice / 100).toFixed(2) + " kr/kWh"}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
+  let marketBody = null;
+  let powerplantBody = null;
+  let manageBody = null;
+  let usersBody = null;
+
+  if (meData?.me) {
+    marketBody = (
+      <TableContainer component={Paper} className={clsx(classes.paper)}>
+        <Typography variant="h6">
+          Market
+        </Typography>
+        <Table className={clsx(classes.table)} aria-label="simple table">
+          <TableHead>
+            <TableRow>
+              <TableCell>Stat</TableCell>
+              <TableCell align="right">Data</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Market demand</TableCell>
+              <TableCell align="right">{powConv(mdState.marketDemand)}</TableCell>
+            </TableRow>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Current price</TableCell>
+              <TableCell align="right">{(mdState.currentPrice / 100).toFixed(2) + " kr/kWh"}</TableCell>
+            </TableRow>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Modeled price</TableCell>
+              <TableCell align="right">{(mdState.modeledPrice / 100).toFixed(2) + " kr/kWh"}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </TableContainer>
+    )
+  }
+
+  if (mState) {
+    powerplantBody = (
+      <TableContainer component={Paper} className={clsx(classes.paper)}>
+        <Typography variant="h6">
+          Powerplant
+        </Typography>
+        <Table className={clsx(classes.table)} aria-label="simple table">
+          <TableHead>
+            <TableRow>
+              <TableCell>Stat</TableCell>
+              <TableCell align="right">Data</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Production status</TableCell>
+              <TableCell align="right">{mState.productionStatus === 100 ? "ON" : "OFF"}</TableCell>
+            </TableRow>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Next production transition</TableCell>
+              <TableCell align="right">{(mState.nextProductionTransition / 1000).toFixed(0) + "s"}</TableCell>
+            </TableRow>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Power production</TableCell>
+              <TableCell align="right">{powConv(mState.powerProduction)}</TableCell>
+            </TableRow>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Power consumption</TableCell>
+              <TableCell align="right">{powConv(mState.powerConsumption)}</TableCell>
+            </TableRow>
+            <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Net production</TableCell>
+              <TableCell align="right">{powConv(mState.powerProduction - mState.powerConsumption)}</TableCell>
+            </TableRow>
+            {/* <TableRow className={clsx(classes.hideLastBorder)}>
+              <TableCell component="th" scope="row">Charge ratio</TableCell>
+              <TableCell align="right">{(mState.chargeRatio * 100).toFixed(0) + "%"}</TableCell>
+            </TableRow> */}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    )
+  }
+
+  if (meData?.me && mState) {
+    manageBody = (
+      <Paper className={clsx(classes.paper)}>
+        <Typography variant="h6">
+          Manage
+        </Typography>
+        <Grid container spacing={2} justifyContent="flex-start">
+          <Grid item xs={12} sm={6} lg={12} xl={6}>
+            <Paper elevation={4} className={clsx(classes.paper, classes.actionPaper)}>
+              <Typography variant="h6" gutterBottom>
+                Set charge ratio
+              </Typography>
+              <Formik
+                initialValues={{ ratio: 0 }}
+                onSubmit={async (values) => {
+                  const response = await setChargeRatio({
+                    variables: {
+                      id: meData.me.prosumerData.houseId,
+                      ratio: values.ratio
+                    }
+                  });
+                }}
+              >
+                {({ isSubmitting }) => (
+                  <Form>
+                    <Grid container spacing={1} alignItems="center">
+                      <Grid item xs={6}>
+                        <Field
+                          component={TextField}
+                          name="ratio"
+                          type="number"
+                          label="Ratio"
+                          inputProps={{ min: 0, max: 1, step: 0.001 }}
+                        />
+                      </Grid>
+                      <Grid item xs={6}>
+                        <LoadingButton
+                          size="small"
+                          type="submit"
+                          variant="contained"
+                          pending={isSubmitting}
+                          sx={{ height: 50 }}
+                        >
+                          Submit
+                        </LoadingButton>
+                      </Grid>
+                    </Grid>
+                  </Form>
+                )}
+              </Formik>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6} lg={12} xl={6}>
+            <Paper elevation={4} className={clsx(classes.paper, classes.actionPaper)}>
+              <Typography variant="h6" gutterBottom>
+                Set electricity price
+              </Typography>
+              <Formik
+                initialValues={{ price: 0 }}
+                onSubmit={async (values) => {
+                  const response = await setElectricityPrice({
+                    variables: {
+                      price: values.price
+                    }
+                  });
+                }}
+              >
+                {({ isSubmitting }) => (
+                  <Form>
+                    <Grid container spacing={1} alignItems="center">
+                      <Grid item xs={6}>
+                        <Field
+                          component={TextField}
+                          name="price"
+                          type="number"
+                          label="Price"
+                          inputProps={{ min: 0, max: 100, step: 0.1 }}
+                        />
+                      </Grid>
+                      <Grid item xs={6}>
+                        <LoadingButton
+                          size="small"
+                          type="submit"
+                          variant="contained"
+                          pending={isSubmitting}
+                          sx={{ height: 50 }}
+                        >
+                          Submit
+                        </LoadingButton>
+                      </Grid>
+                    </Grid>
+                  </Form>
+                )}
+              </Formik>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper elevation={4} className={clsx(classes.paper, classes.actionPaper)}>
+              <Button
+                variant="contained"
+                sx={{ height: 50 }}
+                disabled={powerState || mState.nextProductionTransition !== null}
+                onClick={async () => {
+                  await setProductionLevel({
+                    variables: {
+                      percent: 100
+                    }
+                  });
+                }}
+              >
+                Turn on powerplant
+              </Button>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Paper elevation={4} className={clsx(classes.paper, classes.actionPaper)}>
+              <Button
+                variant="contained"
+                color="secondary"
+                sx={{ height: 50 }}
+                disabled={!powerState || mState.nextProductionTransition !== null}
+                onClick={async () => {
+                  await setProductionLevel({
+                    variables: {
+                      percent: 0
+                    }
+                  });
+                }}
+              >
+                Turn off powerplant
+              </Button>
+            </Paper>
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={6} lg={4}>
-          <TableContainer component={Paper} className={clsx(classes.paper)}>
-            <Typography variant="h6">
-              Powerplant
-            </Typography>
-            <Table className={clsx(classes.table)} aria-label="simple table">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Stat</TableCell>
-                  <TableCell align="right">Data</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Production status</TableCell>
-                  <TableCell align="right">{mState.productionStatus === 100 ? "ON" : "OFF"}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Next production transition</TableCell>
-                  <TableCell align="right">{(mState.nextProductionTransition / 1000).toFixed(0) + "s"}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Power production</TableCell>
-                  <TableCell align="right">{powConv(mState.powerProduction)}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Power consumption</TableCell>
-                  <TableCell align="right">{powConv(mState.powerConsumption)}</TableCell>
-                </TableRow>
-                <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Net production</TableCell>
-                  <TableCell align="right">{powConv(mState.powerProduction - mState.powerConsumption)}</TableCell>
-                </TableRow>
-                {/* <TableRow className={clsx(classes.hideLastBorder)}>
-                  <TableCell component="th" scope="row">Charge ratio</TableCell>
-                  <TableCell align="right">{(mState.chargeRatio * 100).toFixed(0) + "%"}</TableCell>
-                </TableRow> */}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Grid>
-        <Grid item xs={12} md={12} lg={4}>
-          <Paper className={clsx(classes.paper)}>
-            <Typography variant="h6">
-              Manage
-            </Typography>
-            <Grid container spacing={2} justifyContent="flex-start">
-              <Grid item xs={12} sm={6} lg={12} xl={6}>
-                <Paper elevation={4} className={clsx(classes.paper, classes.actionPaper)}>
-                  <Typography variant="h6" gutterBottom>
-                    Set charge ratio
-                  </Typography>
-                  <Formik
-                    initialValues={{ ratio: 0 }}
-                    onSubmit={async (values) => {
-                      const response = await setChargeRatio({
-                        variables: {
-                          id: meData.me.prosumerData.houseId,
-                          ratio: values.ratio
-                        }
-                      });
-                    }}
-                  >
-                    {({ isSubmitting }) => (
-                      <Form>
-                        <Grid container spacing={1} alignItems="center">
-                          <Grid item xs={6}>
-                            <Field
-                              component={TextField}
-                              name="ratio"
-                              type="number"
-                              label="Ratio"
-                              inputProps={{ min: 0, max: 1, step: 0.001 }}
-                            />
-                          </Grid>
-                          <Grid item xs={6}>
-                            <LoadingButton
-                              size="small"
-                              type="submit"
-                              variant="contained"
-                              pending={isSubmitting}
-                              sx={{ height: 50 }}
-                            >
-                              Submit
-                            </LoadingButton>
-                          </Grid>
-                        </Grid>
-                      </Form>
-                    )}
-                  </Formik>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6} lg={12} xl={6}>
-                <Paper elevation={4} className={clsx(classes.paper, classes.actionPaper)}>
-                  <Typography variant="h6" gutterBottom>
-                    Set electricity price
-                  </Typography>
-                  <Formik
-                    initialValues={{ price: 0 }}
-                    onSubmit={async (values) => {
-                      const response = await setElectricityPrice({
-                        variables: {
-                          price: values.price
-                        }
-                      });
-                    }}
-                  >
-                    {({ isSubmitting }) => (
-                      <Form>
-                        <Grid container spacing={1} alignItems="center">
-                          <Grid item xs={6}>
-                            <Field
-                              component={TextField}
-                              name="price"
-                              type="number"
-                              label="Price"
-                              inputProps={{ min: 0, max: 100, step: 0.1 }}
-                            />
-                          </Grid>
-                          <Grid item xs={6}>
-                            <LoadingButton
-                              size="small"
-                              type="submit"
-                              variant="contained"
-                              pending={isSubmitting}
-                              sx={{ height: 50 }}
-                            >
-                              Submit
-                            </LoadingButton>
-                          </Grid>
-                        </Grid>
-                      </Form>
-                    )}
-                  </Formik>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Paper elevation={4} className={clsx(classes.paper, classes.actionPaper)}>
-                  <Button
-                    variant="contained"
-                    sx={{ height: 50 }}
-                    disabled={powerState || mState.nextProductionTransition !== null}
-                    onClick={async () => {
-                      await setProductionLevel({
-                        variables: {
-                          percent: 100
-                        }
-                      });
-                    }}
-                  >
-                    Turn on powerplant
-                  </Button>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Paper elevation={4} className={clsx(classes.paper, classes.actionPaper)}>
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    sx={{ height: 50 }}
-                    disabled={!powerState || mState.nextProductionTransition !== null}
-                    onClick={async () => {
-                      await setProductionLevel({
-                        variables: {
-                          percent: 0
-                        }
-                      });
-                    }}
-                  >
-                    Turn off powerplant
-                  </Button>
-                </Paper>
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-        <Grid item xs={12}>
-          <Paper className={clsx(classes.paper)}>
-            <TableContainer className={clsx(classes.container)}>
-              <Table stickyHeader className={clsx(classes.table)} aria-label="simple table">
-                <TableHead>
-                  <TableRow>
-                    <TableCell className={clsx(classes.tableCell)} />
-                    <TableCell className={clsx(classes.tableCell)}>Prosumer</TableCell>
-                    <TableCell className={clsx(classes.tableCell)}>Online</TableCell>
-                    <TableCell className={clsx(classes.tableCell)}>Blackout</TableCell>
-                    <TableCell className={clsx(classes.tableCell)}>House</TableCell>
-                    <TableCell className={clsx(classes.tableCell)}>Edit</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {
-                    (rowsPerPage > 0
-                      ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                      : rows
-                    ).map((usr) => {
-                      let hasHouse = usr.prosumerData.houseId !== undefined && usr.prosumerData.houseId !== null;
-                      const key1 = usr._id + "_1";
-                      const key2 = usr._id + "_2";
-                      return (
-                        <React.Fragment key={usr._id}>
-                          <TableRow>
-                            <TableCell>
-                              <IconButton
-                                aria-label="expand row"
-                                size="small"
-                                onClick={() => {
-                                  if (!user) {
-                                    setUser(usr._id);
-                                    if (hasHouse) {
-                                      setHouse(usr.prosumerData.houseId);
-                                    }
-                                  } else {
-                                    setUser(null);
-                                    setHouse(null);
-                                  }
-                                }}
-                                // onClick={() => userDispatch({ type: 'toggle', payload: usr._id })}
-                              >
-                                {user === usr._id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                              </IconButton>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                overlap="circular"
-                                anchorOrigin={{
-                                  vertical: 'bottom',
-                                  horizontal: 'right',
-                                }}
-                                variant="dot"
-                                sx={{ marginRight: "10px" }}
-                                classes={{
-                                  badge: (online.includes(usr._id) ? classes.usrOnline : classes.usrOffline),
-                                }}
-                              >
-                                <Avatar className={classes.avatar} alt={usr.name} src={process.env.NEXT_PUBLIC_PROFILE_URL + '/' + usr._id} />
-                              </Badge>
-                              {usr._id === meData.me._id ? usr.name + " (YOU)" : usr.name}
-                            </TableCell>
-                            <TableCell>
-                              {online.includes(usr._id) ? "ONLINE" : "OFFLINE"}
-                            </TableCell>
-                            <TableCell>
-                              {bState.hasBlackout[parseInt(usr.prosumerData.houseId)]?.blackout ? "BLACKOUT" : "No"}
-                            </TableCell>
-                            <TableCell>
-                              {hasHouse ? "House " + usr.prosumerData.houseId : "No house"}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="contained"
-                                color="secondary"
-                                className={clsx(classes.item)}
-                                onClick={() => {
-                                  setEditUser({
-                                    open: true,
-                                    user: {
-                                      userId: usr._id,
-                                      name: usr.name,
-                                      email: usr.email,
-                                      type: usr.type,
-                                    }
-                                  });
-                                  console.warn(editUser);
-                                }}
-                              >
-                                Edit
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow className={clsx(classes.hideLastBorder)}>
-                            <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
-                              <Collapse in={user === usr._id} timeout='auto'>
-                                <Table size="small" aria-label="battery">
-                                  <TableHead>
-                                    <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell>Stat</TableCell>
-                                      <TableCell align="right">Data</TableCell>
-                                    </TableRow>
-                                  </TableHead>
-                                  <TableBody>
-                                    <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell component="th" scope="row">Banned</TableCell>
-                                      <TableCell align="right">{hasHouse ? (pdState?.banned ? "BANNED" : "No") : "No house"}</TableCell>
-                                    </TableRow>
-                                    <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell component="th" scope="row">Ban duration</TableCell>
-                                      <TableCell align="right">{hasHouse ? (pdState?.banDuration / 1000).toFixed(0) + "s" : "No house"}</TableCell>
-                                    </TableRow>
-                                    <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell component="th" scope="row">Blackout</TableCell>
-                                      <TableCell align="right">{hasHouse ? (pdState?.blackout ? "BLACKOUT" : "No") : "No house"}</TableCell>
-                                    </TableRow>
-                                    <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell component="th" scope="row">Power production</TableCell>
-                                      <TableCell align="right">{hasHouse ? powConv(pdState?.powerProduction) : "No house"}</TableCell>
-                                    </TableRow>
-                                    <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell component="th" scope="row">Power consumption</TableCell>
-                                      <TableCell align="right">{hasHouse ? powConv(pdState?.powerConsumption) : "No house"}</TableCell>
-                                    </TableRow>
-                                    <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell component="th" scope="row">Net production</TableCell>
-                                      <TableCell align="right">{hasHouse ? powConv(pdState?.powerProduction - pdState?.powerConsumption) : "No house"}</TableCell>
-                                    </TableRow>
-                                    <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell component="th" scope="row">Charge ratio</TableCell>
-                                      <TableCell align="right">{hasHouse ? pdState?.chargeRatio.toFixed(3) : "No house"}</TableCell>
-                                    </TableRow>
-                                    <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell component="th" scope="row">Discharge ratio</TableCell>
-                                      <TableCell align="right">{hasHouse ? pdState?.dischargeRatio.toFixed(3) : "No house"}</TableCell>
-                                    </TableRow>
-                                    {hasHouse ? (
-                                      <BatteryRow charge={pdState?.battery.charge} capacity={pdState?.battery.capacity}/>
-                                    ) : (
-                                      <TableRow className={clsx(classes.hideLastBorder)}>
-                                        <TableCell>Battery level</TableCell>
-                                        <TableCell align="right">No house</TableCell>
-                                      </TableRow>
+      </Paper>
+    )
+  }
+  
+  if (rows) {
+    usersBody = (
+      <Paper className={clsx(classes.paper)}>
+        <TableContainer className={clsx(classes.container)}>
+          <Table stickyHeader className={clsx(classes.table)} aria-label="simple table">
+            <TableHead>
+              <TableRow>
+                <TableCell className={clsx(classes.tableCell)} />
+                <TableCell className={clsx(classes.tableCell)}>Prosumer</TableCell>
+                <TableCell className={clsx(classes.tableCell)}>Online</TableCell>
+                <TableCell className={clsx(classes.tableCell)}>Blackout</TableCell>
+                <TableCell className={clsx(classes.tableCell)}>House</TableCell>
+                <TableCell className={clsx(classes.tableCell)}>Edit</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {
+                (rowsPerPage > 0
+                  ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  : rows
+                ).map((usr) => {
+                  let hasHouse = usr.prosumerData.houseId !== undefined && usr.prosumerData.houseId !== null;
+                  const key1 = usr._id + "_1";
+                  const key2 = usr._id + "_2";
+                  return (
+                    <React.Fragment key={usr._id}>
+                      <TableRow>
+                        <TableCell>
+                          <IconButton
+                            aria-label="expand row"
+                            size="small"
+                            onClick={() => {
+                              if (!user) {
+                                setUser(usr._id);
+                                if (hasHouse) {
+                                  setHouse(usr.prosumerData.houseId);
+                                }
+                              } else {
+                                setUser(null);
+                                setHouse(null);
+                              }
+                            }}
+                            // onClick={() => userDispatch({ type: 'toggle', payload: usr._id })}
+                          >
+                            {user === usr._id ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                          </IconButton>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            overlap="circular"
+                            anchorOrigin={{
+                              vertical: 'bottom',
+                              horizontal: 'right',
+                            }}
+                            variant="dot"
+                            sx={{ marginRight: "10px" }}
+                            classes={{
+                              badge: (online.includes(usr._id) ? classes.usrOnline : classes.usrOffline),
+                            }}
+                          >
+                            <Avatar className={classes.avatar} alt={usr.name} src={process.env.NEXT_PUBLIC_PROFILE_URL + '/' + usr._id} />
+                          </Badge>
+                          {usr._id === meData.me._id ? usr.name + " (YOU)" : usr.name}
+                        </TableCell>
+                        <TableCell>
+                          {online.includes(usr._id) ? "ONLINE" : "OFFLINE"}
+                        </TableCell>
+                        <TableCell>
+                          {bState.hasBlackout[parseInt(usr.prosumerData.houseId)]?.blackout ? "BLACKOUT" : "No"}
+                        </TableCell>
+                        <TableCell>
+                          {hasHouse ? "House " + usr.prosumerData.houseId : "No house"}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="contained"
+                            color="secondary"
+                            className={clsx(classes.item)}
+                            onClick={() => {
+                              setEditUser({
+                                open: true,
+                                user: {
+                                  userId: usr._id,
+                                  name: usr.name,
+                                  email: usr.email,
+                                  type: usr.type,
+                                }
+                              });
+                              console.warn(editUser);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow className={clsx(classes.hideLastBorder)}>
+                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
+                          <Collapse in={user === usr._id} timeout='auto'>
+                            <Table size="small" aria-label="battery">
+                              <TableHead>
+                                <TableRow className={clsx(classes.hideLastBorder)}>
+                                  <TableCell>Stat</TableCell>
+                                  <TableCell align="right">Data</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                <TableRow className={clsx(classes.hideLastBorder)}>
+                                  <TableCell component="th" scope="row">Banned</TableCell>
+                                  <TableCell align="right">{hasHouse ? (pdState?.banned ? "BANNED" : "No") : "No house"}</TableCell>
+                                </TableRow>
+                                <TableRow className={clsx(classes.hideLastBorder)}>
+                                  <TableCell component="th" scope="row">Ban duration</TableCell>
+                                  <TableCell align="right">{hasHouse ? (pdState?.banDuration / 1000).toFixed(0) + "s" : "No house"}</TableCell>
+                                </TableRow>
+                                <TableRow className={clsx(classes.hideLastBorder)}>
+                                  <TableCell component="th" scope="row">Blackout</TableCell>
+                                  <TableCell align="right">{hasHouse ? (pdState?.blackout ? "BLACKOUT" : "No") : "No house"}</TableCell>
+                                </TableRow>
+                                <TableRow className={clsx(classes.hideLastBorder)}>
+                                  <TableCell component="th" scope="row">Power production</TableCell>
+                                  <TableCell align="right">{hasHouse ? powConv(pdState?.powerProduction) : "No house"}</TableCell>
+                                </TableRow>
+                                <TableRow className={clsx(classes.hideLastBorder)}>
+                                  <TableCell component="th" scope="row">Power consumption</TableCell>
+                                  <TableCell align="right">{hasHouse ? powConv(pdState?.powerConsumption) : "No house"}</TableCell>
+                                </TableRow>
+                                <TableRow className={clsx(classes.hideLastBorder)}>
+                                  <TableCell component="th" scope="row">Net production</TableCell>
+                                  <TableCell align="right">{hasHouse ? powConv(pdState?.powerProduction - pdState?.powerConsumption) : "No house"}</TableCell>
+                                </TableRow>
+                                <TableRow className={clsx(classes.hideLastBorder)}>
+                                  <TableCell component="th" scope="row">Charge ratio</TableCell>
+                                  <TableCell align="right">{hasHouse ? pdState?.chargeRatio.toFixed(3) : "No house"}</TableCell>
+                                </TableRow>
+                                <TableRow className={clsx(classes.hideLastBorder)}>
+                                  <TableCell component="th" scope="row">Discharge ratio</TableCell>
+                                  <TableCell align="right">{hasHouse ? pdState?.dischargeRatio.toFixed(3) : "No house"}</TableCell>
+                                </TableRow>
+                                {hasHouse ? (
+                                  <BatteryRow charge={pdState?.battery.charge} capacity={pdState?.battery.capacity}/>
+                                ) : (
+                                  <TableRow className={clsx(classes.hideLastBorder)}>
+                                    <TableCell>Battery level</TableCell>
+                                    <TableCell align="right">No house</TableCell>
+                                  </TableRow>
+                                )}
+                                <TableRow className={clsx(classes.hideLastBorder)}>
+                                  <TableCell>
+                                    <Button
+                                      variant="contained"
+                                      color="secondary"
+                                      className={clsx(classes.item)}
+                                      onClick={async () => {
+                                        await deleteUser({
+                                          variables: {
+                                            userId: usr._id,
+                                          }
+                                        });
+                                        await apolloClient.resetStore();
+                                      }}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </TableCell>
+                                  <Formik
+                                    initialValues={{ duration: 0 }}
+                                    onSubmit={async (values) => {
+                                      const response = await banProducer({
+                                        variables: {
+                                          id: usr.prosumerData.houseId,
+                                          duration: values.duration * 1000
+                                        }
+                                      });
+                                    }}
+                                  >
+                                    {({ isSubmitting }) => (
+                                      <>
+                                        <TableCell>
+                                          <Form id={usr._id + "_banform"}>
+                                            <Field
+                                              className={clsx(classes.item)}
+                                              component={TextField}
+                                              name="duration"
+                                              type="number"
+                                              label="Duration"
+                                              inputProps={{ min: 10, max: 100, step: 1 }}
+                                            />
+                                          </Form>
+                                        </TableCell>
+                                        <TableCell>
+                                          <LoadingButton
+                                            variant="contained"
+                                            color="secondary"
+                                            className={clsx(classes.item)}
+                                            form={usr._id + "_banform"}
+                                            type="submit"
+                                            pending={isSubmitting}
+                                            sx={{ height: 50 }}
+                                          >
+                                            Ban
+                                          </LoadingButton>
+                                        </TableCell>
+                                      </>
                                     )}
-                                    <TableRow className={clsx(classes.hideLastBorder)}>
-                                      <TableCell>
-                                        <Button
-                                          variant="contained"
-                                          color="secondary"
-                                          className={clsx(classes.item)}
-                                          onClick={async () => {
-                                            await deleteUser({
-                                              variables: {
-                                                userId: usr._id,
-                                              }
-                                            });
-                                            await apolloClient.resetStore();
-                                          }}
-                                        >
-                                          Delete
-                                        </Button>
-                                      </TableCell>
-                                      <Formik
-                                        initialValues={{ duration: 0 }}
-                                        onSubmit={async (values) => {
-                                          const response = await banProducer({
-                                            variables: {
-                                              id: usr.prosumerData.houseId,
-                                              duration: values.duration * 1000
-                                            }
-                                          });
-                                        }}
-                                      >
-                                        {({ isSubmitting }) => (
-                                          <>
-                                            <TableCell>
-                                              <Form id={usr._id + "_banform"}>
-                                                <Field
-                                                  className={clsx(classes.item)}
-                                                  component={TextField}
-                                                  name="duration"
-                                                  type="number"
-                                                  label="Duration"
-                                                  inputProps={{ min: 10, max: 100, step: 1 }}
-                                                />
-                                              </Form>
-                                            </TableCell>
-                                            <TableCell>
-                                              <LoadingButton
-                                                variant="contained"
-                                                color="secondary"
-                                                className={clsx(classes.item)}
-                                                form={usr._id + "_banform"}
-                                                type="submit"
-                                                pending={isSubmitting}
-                                                sx={{ height: 50 }}
-                                              >
-                                                Ban
-                                              </LoadingButton>
-                                            </TableCell>
-                                          </>
-                                        )}
-                                      </Formik>
-                                    </TableRow>
-                                  </TableBody>
-                                </Table>
-                              </Collapse>
-                            </TableCell>
-                          </TableRow>
-                        </React.Fragment>
-                      )
-                    })
-                  }
-                  {emptyRows > 0 && (
-                    <TableRow style={{ height: 53 * emptyRows }} className={clsx(classes.hideLastBorder)}>
-                      <TableCell colSpan={6} />
-                    </TableRow>
-                  )}
-                </TableBody>
-                <TableFooter>
-                  <TableRow className={clsx(classes.hideLastBorder)}>
-                    <TablePagination
-                      rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
-                      colSpan={4}
-                      count={rows.length}
-                      rowsPerPage={rowsPerPage}
-                      page={page}
-                      onPageChange={handleChangePage}
-                      onRowsPerPageChange={handleChangeRowsPerPage}
-                    />
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            </TableContainer>
-          </Paper>
+                                  </Formik>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
+                  )
+                })
+              }
+              {emptyRows > 0 && (
+                <TableRow style={{ height: 53 * emptyRows }} className={clsx(classes.hideLastBorder)}>
+                  <TableCell colSpan={6} />
+                </TableRow>
+              )}
+            </TableBody>
+            <TableFooter>
+              <TableRow className={clsx(classes.hideLastBorder)}>
+                <TablePagination
+                  rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
+                  colSpan={4}
+                  count={rows.length}
+                  rowsPerPage={rowsPerPage}
+                  page={page}
+                  onPageChange={handleChangePage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                />
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </TableContainer>
+      </Paper>
+    )
+  }
+
+  return (
+    <Box>
+      <Box className={clsx(classes.form)}>
+        <UpdateDialog
+          open={editUser.open}
+          user={editUser.user}
+          close={() => {
+            setEditUser(prevState => {
+              return { open: false, user: prevState.user }
+            });
+          }}
+          update={ async (userId, values) => {
+            return updateUser({
+              variables: {
+                userId: userId,
+                userInput: values
+              }
+            })
+          }}
+        />
+      </Box>
+      <Box sx={{ overflow: "hidden", mx: 2 }}>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6} lg={4}>
+            <Box>{marketBody}</Box>
+          </Grid>
+          <Grid item xs={12} md={6} lg={4}>
+            <Box>{powerplantBody}</Box>
+          </Grid>
+          <Grid item xs={12} md={12} lg={4}>
+            <Box sx={{ display: "grid", gap: 8, gridAutoFlow: "row" }}>
+              <Box>{manageBody}</Box>
+            </Box>
+          </Grid>
+          <Grid item xs={12}>
+            <Box>{usersBody}</Box>
+          </Grid>
         </Grid>
-      </Grid>
+      </Box>
     </Box>
   )
 }

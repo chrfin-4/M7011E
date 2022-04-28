@@ -49,7 +49,7 @@ export const UploadFile = (name) => {
     <>
       <input accept="image/*" className={classes.input} id="icon-button-file" type="file" onChange={onImageChange} />
       <IconButton aria-label="Avatar" className={classes.avatarButton} component="span" >
-        <Avatar className={classes.avatar} alt={name} src={`${image.source}?${image.hash}`} />
+        <Avatar className={classes.avatar} alt={name.toString()} src={`${image.source}?${image.hash}`} />
       </IconButton>
     </>
   )

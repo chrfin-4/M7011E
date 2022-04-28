@@ -1,8 +1,7 @@
 import React from "react";
-import { Wrapper, WrapperVariant } from "./Wrapper";
 import { NavBar } from "./NavBar";
 
-export const Layout = ({ children, variant }) => {
+export const Layout = ({ children }) => {
   return (
     <>
       <NavBar />

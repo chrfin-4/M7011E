@@ -1,8 +1,6 @@
 import React from 'react'
-import PropTypes from 'prop-types';
-import { isServer } from '../src/utils/isServer';
 import { useRouter } from 'next/router';
-import { powConv } from '../src/utils/powConv';
+import PropTypes from 'prop-types';
 
 import { 
   useMeQuery, 
@@ -12,32 +10,33 @@ import {
   useSetDischargeRatioMutation,
 } from '../src/generated/graphql.ts'
 
+import { isServer } from '../src/utils/isServer';
+import { powConv } from '../src/utils/powConv';
+
+import { Field, Form, Formik } from 'formik';
+import { TextField } from 'formik-material-ui';
+
 import clsx from 'clsx';
 import { 
   Box,
-  Typography,
-  Grid,
-  Paper,
-  TableBody,
-  TableContainer,
-  Table,
-  TableRow,
-  TableHead,
-  TableCell,
   Collapse,
+  Grid,
   IconButton,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton} from '@material-ui/lab';
-import { TextField } from 'formik-material-ui';
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
-import { Field, Form, Formik } from 'formik';
 
 const useStyles = makeStyles((theme) => ({
-  manage: {
-    margin: 'auto'
-  },
   paper: {
     padding: theme.spacing(2),
     margin: 'auto',

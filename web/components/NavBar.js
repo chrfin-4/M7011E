@@ -5,14 +5,12 @@ import { useApolloClient } from '@apollo/client';
 import {
   useMeQuery,
   useLogoutMutation,
-  useSetProfilePictureMutation,
 } from '../src/generated/graphql.ts';
 import { isServer } from "../src/utils/isServer";
 import { useRouter } from "next/router";
 
 import {
   AppBar,
-  Avatar,
   Drawer,
   Divider,
   Hidden,
@@ -20,9 +18,7 @@ import {
   Typography,
   Button,
   IconButton,
-  Badge,
   Box,
-  Link,
   ListItem,
   List,
   ListItemText,
@@ -30,7 +26,6 @@ import {
 } from '@material-ui/core';
 import {
   makeStyles,
-  useTheme
 } from '@material-ui/core/styles';
 import { LoadingButton } from '@material-ui/lab';
 import {
@@ -96,9 +91,7 @@ const useStyles = makeStyles((theme) => ({
 export const NavBar = ({ window }) => {
   const router = useRouter();
   const classes = useStyles();
-  const theme = useTheme();
   const [logout, { loading: logoutFetching }] = useLogoutMutation();
-  const [setProfilePicture] = useSetProfilePictureMutation();
   const apolloClient = useApolloClient();
   const { data, loading } = useMeQuery({
     skip: isServer(),

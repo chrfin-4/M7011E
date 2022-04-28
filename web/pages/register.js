@@ -1,8 +1,10 @@
 import React from 'react';
+import { useRouter } from "next/router";
+
 import { useApolloClient } from '@apollo/client';
 import { useMeQuery, useCreateUserMutation, MeDocument } from "../src/generated/graphql.ts";
+
 import { toErrorMap } from "../src/utils/toErrorMap";
-import { useRouter } from "next/router";
 import { isServer } from "../src/utils/isServer";
 
 import { Formik, Form, Field } from "formik";
@@ -11,15 +13,17 @@ import { TextField } from 'formik-material-ui';
 import clsx from 'clsx';
 import { 
   Box,
+  Button,
   Radio,
   RadioGroup,
-  FormLabel,
+  FormControl,
   FormControlLabel,
+  FormLabel,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton} from '@material-ui/lab';
-import { withNoAuthentication } from '../src/utils/withAuthentication';
-import { FormControl } from '@mui/material';
+
+import UpdateDialog from '../components/UpdateDialog';
 
 const useStyles = makeStyles((theme) => ({
   form: {
@@ -42,6 +46,16 @@ const Register = ({}) => {
     skip: isServer(),
   });
 
+  const [editUser, setEditUser] = React.useState({
+    open: false,
+    user: {
+      name: "",
+      email: "",
+      password: "",
+      type: 0,
+    }
+  });
+
   // Redirect if already signed in
   if (typeof window === 'undefined') {
     if (data?.me) return null;
@@ -55,6 +69,23 @@ const Register = ({}) => {
 
   return (
     <Box className={clsx(classes.form)}>
+      <UpdateDialog
+        open={editUser.open}
+        user={editUser.user}
+        close={() => {
+          setEditUser(prevState => {
+            return { open: false, user: prevState.user }
+          });
+        }}
+        update={ async (userId, values) => {
+          return updateUser({
+            variables: {
+              userId: userId,
+              userInput: values
+            }
+          })
+        }}
+      />
       <Formik
         initialValues={{ name: "", email: "", password: "", type: "1" }}
         onSubmit={async (values, { setErrors }) => {
@@ -106,23 +137,23 @@ const Register = ({}) => {
               />
             </Box>
             <Box className={clsx(classes.formField)}>
-                <FormLabel component="legend">Type of user</FormLabel>
-                <RadioGroup name="type" value={values.type.toString()} onChange={(event) => {
-                  setFieldValue("type", event.currentTarget.value)
-                }}>
-                  <FormControlLabel
-                    control={<Radio disabled={isSubmitting}/>}
-                    disabled={isSubmitting}
-                    label="Prosumer"
-                    value="1"
-                  />
-                  <FormControlLabel
-                    control={<Radio disabled={isSubmitting}/>}
-                    disabled={isSubmitting}
-                    label="Manager"
-                    value="2"
-                  />
-                </RadioGroup>
+              <FormLabel component="legend">Type of user</FormLabel>
+              <RadioGroup name="type" value={values.type.toString()} onChange={(event) => {
+                setFieldValue("type", event.currentTarget.value)
+              }}>
+                <FormControlLabel
+                  control={<Radio disabled={isSubmitting}/>}
+                  disabled={isSubmitting}
+                  label="Prosumer"
+                  value="1"
+                />
+                <FormControlLabel
+                  control={<Radio disabled={isSubmitting}/>}
+                  disabled={isSubmitting}
+                  label="Manager"
+                  value="2"
+                />
+              </RadioGroup>
             </Box>
             <Box>Type: {values.type}</Box>
             <LoadingButton
@@ -136,6 +167,25 @@ const Register = ({}) => {
           </Form>
         )}
       </Formik>
+      <Button
+        variant="contained"
+        color="secondary"
+        className={clsx(classes.item)}
+        onClick={() => {
+          setEditUser({
+            open: true,
+            user: {
+              userId: "aaa",
+              name: "abc",
+              email: "ab@c",
+              type: "2",
+            }
+          });
+          console.warn(editUser);
+        }}
+      >
+        Edit
+      </Button>
     </Box>
   );
 };
