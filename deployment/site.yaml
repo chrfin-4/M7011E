@@ -57,14 +57,21 @@
         rule: allow
         name: OpenSSH
 
-    - name: "Firewall: Allow http"
+    - name: "Firewall: Allow http from loadbalancers"
+      community.general.ufw:
+        rule: allow
+        src: '{{ item }}'
+        port: '{{ http_port }}'
+      loop:
+        - '{{ groups.loadbalancers }}'
+
+    - name: "Firewall: Allow http from webservers"
       community.general.ufw:
         rule: allow
         src: '{{ item }}'
         port: '{{ http_port }}'
       loop:
         - '{{ groups.webservers }}'
-        - '{{ groups.loadbalancers }}'
 
     - name: "Firewall: Allow nfs"
       community.general.ufw:
