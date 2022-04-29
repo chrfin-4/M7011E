@@ -1,0 +1,3 @@
+{% for srv in groups.webservers %}
+  {{ uploads_dir }}   {{ srv }}(rw,sync,no_subtree_check)
+{% endfor %}

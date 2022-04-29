@@ -44,9 +44,9 @@ frontend http-in
   http-request redirect scheme https unless { ssl_fc }
 	option httplog
 	timeout client 1m
-	default_backend app
+	default_backend nodes
 
-backend app
+backend nodes
 	mode http
 	option httpclose
 	timeout connect 10s

@@ -13,7 +13,6 @@ import { TextField } from 'formik-material-ui';
 import clsx from 'clsx';
 import { 
   Box,
-  Button,
   Radio,
   RadioGroup,
   FormControl,
@@ -22,8 +21,6 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { LoadingButton} from '@material-ui/lab';
-
-import UpdateDialog from '../components/UpdateDialog';
 
 const useStyles = makeStyles((theme) => ({
   form: {
@@ -46,16 +43,6 @@ const Register = ({}) => {
     skip: isServer(),
   });
 
-  const [editUser, setEditUser] = React.useState({
-    open: false,
-    user: {
-      name: "",
-      email: "",
-      password: "",
-      type: 0,
-    }
-  });
-
   // Redirect if already signed in
   if (typeof window === 'undefined') {
     if (data?.me) return null;
@@ -69,23 +56,6 @@ const Register = ({}) => {
 
   return (
     <Box className={clsx(classes.form)}>
-      <UpdateDialog
-        open={editUser.open}
-        user={editUser.user}
-        close={() => {
-          setEditUser(prevState => {
-            return { open: false, user: prevState.user }
-          });
-        }}
-        update={ async (userId, values) => {
-          return updateUser({
-            variables: {
-              userId: userId,
-              userInput: values
-            }
-          })
-        }}
-      />
       <Formik
         initialValues={{ name: "", email: "", password: "", type: "1" }}
         onSubmit={async (values, { setErrors }) => {
@@ -167,25 +137,6 @@ const Register = ({}) => {
           </Form>
         )}
       </Formik>
-      <Button
-        variant="contained"
-        color="secondary"
-        className={clsx(classes.item)}
-        onClick={() => {
-          setEditUser({
-            open: true,
-            user: {
-              userId: "aaa",
-              name: "abc",
-              email: "ab@c",
-              type: "2",
-            }
-          });
-          console.warn(editUser);
-        }}
-      >
-        Edit
-      </Button>
     </Box>
   );
 };

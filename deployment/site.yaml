@@ -1,6 +1,30 @@
 - hosts: loadbalancers
   become: true
   tasks:
+    # Firewall tasks
+    - name: "Firewall: Allow OpenSSH"
+      community.general.ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: "Firewall: Allow http"
+      community.general.ufw:
+        rule: allow
+        name: '{{ item }}'
+        port: http
+
+    - name: "Firewall: Allow https"
+      community.general.ufw:
+        rule: allow
+        name: '{{ item }}'
+        port: https
+
+    - name: "Firewall: Enable"
+      community.general.ufw:
+        default: deny
+        state: enabled
+    # End Firewall tasks
+
     - name: Install certificates
       ansible.builtin.copy:
         src: exerge.pem
@@ -29,6 +53,35 @@
 - hosts: dbservers
   become: true
   tasks:
+    # Firewall tasks
+    - name: "Firewall: Allow OpenSSH"
+      community.general.ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: "Firewall: Allow http"
+      community.general.ufw:
+        rule: allow
+        name: '{{ item }}'
+        port: '{{ http_port }}'
+      loop:
+        - '{{ groups.webservers }}'
+        - '{{ groups.loadbalancers }}'
+
+    - name: "Firewall: Allow nfs"
+      community.general.ufw:
+        rule: allow
+        name: '{{ item }}'
+        port: nfs
+      loop:
+        - '{{ groups.webservers }}'
+
+    - name: "Firewall: Enable"
+      community.general.ufw:
+        default: deny
+        state: enabled
+    # End Firewall tasks
+
     - name: Install Python 3 pip
       ansible.builtin.apt:
         name: python3-pip
@@ -131,6 +184,35 @@
         name: redis
         state: restarted
 
+    - name: Create nfs directory
+      ansible.builtin.file:
+        state: directory
+        path: /nfs
+        mode: '0644'
+
+    - name: Create uploads directory
+      ansible.builtin.file:
+        state: directory
+        path: "{{ uploads_dir }}"
+        mode: '0644'
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Install nfs server
+      ansible.builtin.apt:
+        name: nfs-kernel-server
+
+    - name: Configure nfs exports
+      ansible.builtin.template:
+        src: nfs_exports.j2
+        dest: "/etc/exports"
+        mode: '0644'
+
+    - name: Restart nfs
+      ansible.builtin.service:
+        name: nfs-kernel-server
+        state: restarted
+
     - name: Download simulator # Project
       become: false
       ansible.builtin.git:
@@ -178,6 +260,24 @@
 - hosts: webservers
   become: true
   tasks:
+    # Firewall tasks
+    - name: "Firewall: Allow OpenSSH"
+      community.general.ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: "Firewall: Allow http"
+      community.general.ufw:
+        rule: allow
+        name: '{{ item }}'
+        port: http
+
+    - name: "Firewall: Enable"
+      community.general.ufw:
+        default: deny
+        state: enabled
+    # End Firewall tasks
+
     - name: Install nginx # Nginx
       ansible.builtin.apt:
         name: nginx
@@ -216,6 +316,31 @@
       ansible.builtin.command:
         cmd: "corepack enable"
       changed_when: false
+
+    - name: Create nfs directory
+      ansible.builtin.file:
+        state: directory
+        path: /nfs
+        mode: '0644'
+
+    - name: Create uploads directory
+      ansible.builtin.file:
+        state: directory
+        path: "{{ uploads_dir }}"
+        mode: '0644'
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Install nfs client
+      ansible.builtin.apt:
+        name: nfs-common
+
+    - name: Mount nfs uploads directory
+      ansible.posix.mount:
+        src: "{{ groups['dbservers'][0] }}:{{ uploads_dir }}"
+        path: "{{ uploads_dir }}"
+        opts: auto,nofail,noatime,nolock,intr,tcp,actimeo=1800
+        state: mounted
 
     - name: Download application # Project
       become: false

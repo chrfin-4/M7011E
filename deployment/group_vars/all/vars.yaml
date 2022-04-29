@@ -1,5 +1,6 @@
 domain: exerge.akerstrom.dev
 repo_dest: /home/ubuntu/exerge
+uploads_dir: "/nfs/profile_uploads"
 
 mongodb_host: "{{ groups['dbservers'][0] }}"
 mongodb_user: "{{ vault_mongodb_user }}"
@@ -20,7 +21,6 @@ redis_password: "{{ vault_redis_password }}"
 
 simulator_url: http://{{ groups['dbservers'][0] }}:{{ http_port }}/graphql
 cors_origin: https://{{ domain }}
-
 
 public_api_url: https://{{ domain }}/graphql
 public_profile_url: https://{{ domain }}/profile
