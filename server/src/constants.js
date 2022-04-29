@@ -15,7 +15,7 @@ const REDIS_PORT = (process.env.REDIS_PORT) ? process.env.REDIS_PORT : 6379;
 const REDIS_PASSWORD = (process.env.REDIS_PASSWORD) ? process.env.REDIS_PASSWORD : null;
 const SRV_PORT = (process.env.SRV_PORT) ? process.env.SRV_PORT : 8080;
 
-const UPLOADS_PATH = path.join(__dirname, '..', UPLOADS_DIR);
+const UPLOADS_PATH = (!UPLOADS_DIR.startsWith('/')) ? path.join(__dirname, '..', UPLOADS_DIR) : UPLOADS_DIR;
 
 module.exports = {
   __prod__: process.env.NODE_ENV === "production",

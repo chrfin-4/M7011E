@@ -1,3 +1,80 @@
+# Demo site:
+https://exerge.akerstrom.dev
+
+The site is behind Cloudflare dns proxy.
+
+## Servers and apis:
+
+### Loadbalancer(s):
+
+External ip address: `130.240.200.76`
+</br>
+Internal ip address: `172.30.103.212`
+
+Functionality:
+
+1. Ansible control node. Responsible for deploying the website.
+2. HAProxy for loadbalancing incoming http traffic between webservers.
+
+Open ports:
+
+```
+22: OpenSSH
+80: HTTP - Managed by HAProxy
+443: HTTPS - Managed by HAProxy
+```
+
+### Database server(s):
+
+Internal ip address: `172.30.103.214`
+
+Functionality:
+
+1. Mongo database
+2. Simulator
+3. NFS server for webserver profile picture uploads
+
+Open ports:
+
+```
+22: OpenSSH
+80: HTTP - Managed by Nginx
+```
+
+Internal ports (for reverse proxy)
+
+```
+3000: Web server
+8080: Backend server & Socket.io
+```
+
+### Webservers:
+
+Internal ip addresses:
+
+```
+172.30.103.213
+172.30.103.214
+```
+
+Functionality:
+
+1. Web server.
+2. Backend server.
+3. Redis session store + websocket online user cache.
+4. Nginx acting as a reverse proxy for web, backend, and websocket traffic.
+5. NFS client for profile picture uploads.
+
+Open ports:
+
+```
+22: OpenSSH
+8080: Simulator
+27017: MongoDB
+6379: Redis
+2049: NFS
+```
+
 # Development setup
 
 ## Requirements

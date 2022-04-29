@@ -78,6 +78,20 @@
         port: nfs
       loop: "{{ groups['webservers'] }}"
 
+    - name: "Firewall: Allow mongodb"
+      community.general.ufw:
+        rule: allow
+        src: "{{ item }}"
+        port: "27017"
+      loop: "{{ groups['webservers'] }}"
+
+    - name: "Firewall: Allow redis"
+      community.general.ufw:
+        rule: allow
+        src: "{{ item }}"
+        port: "6379"
+      loop: "{{ groups['webservers'] }}"
+
     - name: "Firewall: Enable"
       community.general.ufw:
         default: deny
