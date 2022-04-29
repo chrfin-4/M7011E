@@ -63,7 +63,7 @@
         src: '{{ item }}'
         port: '{{ http_port }}'
       loop:
-        - '{{ groups.loadbalancers }}'
+        - '{{ groups['loadbalancers'] }}'
 
     - name: "Firewall: Allow http from webservers"
       community.general.ufw:
@@ -71,7 +71,7 @@
         src: '{{ item }}'
         port: '{{ http_port }}'
       loop:
-        - '{{ groups.webservers }}'
+        - '{{ groups['webservers'] }}'
 
     - name: "Firewall: Allow nfs"
       community.general.ufw:
@@ -79,7 +79,7 @@
         src: '{{ item }}'
         port: nfs
       loop:
-        - '{{ groups.webservers }}'
+        - '{{ groups['webservers'] }}'
 
     - name: "Firewall: Enable"
       community.general.ufw:
@@ -277,7 +277,7 @@
         src: '{{ item }}'
         port: http
       loop:
-        - "{{ groups.loadbalancers }}"
+        - "{{ groups['loadbalancers'] }}"
 
     - name: "Firewall: Enable"
       community.general.ufw:
