@@ -190,13 +190,13 @@
       ansible.builtin.file:
         state: directory
         path: /nfs
-        mode: '0644'
+        mode: '0755'
 
     - name: Create uploads directory
       ansible.builtin.file:
         state: directory
         path: "{{ uploads_dir }}"
-        mode: '0644'
+        mode: '0755'
         owner: ubuntu
         group: ubuntu
 
@@ -324,13 +324,13 @@
       ansible.builtin.file:
         state: directory
         path: /nfs
-        mode: '0644'
+        mode: '0755'
 
     - name: Create uploads directory
       ansible.builtin.file:
         state: directory
         path: "{{ uploads_dir }}"
-        mode: '0644'
+        mode: '0755'
         owner: ubuntu
         group: ubuntu
 
@@ -344,6 +344,7 @@
         path: "{{ uploads_dir }}"
         opts: auto,nofail,noatime,nolock,intr,tcp,actimeo=1800
         state: mounted
+        fstype: nfs
 
     - name: Download application # Project
       become: false
