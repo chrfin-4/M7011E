@@ -60,7 +60,7 @@
     - name: "Firewall: Allow http"
       community.general.ufw:
         rule: allow
-        name: '{{ item }}'
+        src: '{{ item }}'
         port: '{{ http_port }}'
       loop:
         - '{{ groups.webservers }}'
@@ -69,7 +69,7 @@
     - name: "Firewall: Allow nfs"
       community.general.ufw:
         rule: allow
-        name: '{{ item }}'
+        src: '{{ item }}'
         port: nfs
       loop:
         - '{{ groups.webservers }}'
@@ -267,7 +267,7 @@
     - name: "Firewall: Allow http"
       community.general.ufw:
         rule: allow
-        name: '{{ item }}'
+        src: '{{ item }}'
         port: http
       loop:
         - "{{ groups.loadbalancers }}"
