@@ -10,13 +10,11 @@
     - name: "Firewall: Allow http"
       community.general.ufw:
         rule: allow
-        name: '{{ item }}'
         port: http
 
     - name: "Firewall: Allow https"
       community.general.ufw:
         rule: allow
-        name: '{{ item }}'
         port: https
 
     - name: "Firewall: Enable"
@@ -271,6 +269,8 @@
         rule: allow
         name: '{{ item }}'
         port: http
+      loop:
+        - "{{ groups.loadbalancers }}"
 
     - name: "Firewall: Enable"
       community.general.ufw:
